@@ -1,0 +1,11 @@
+rsID,phenotype,snp_bp_abs,snp_chr,empirical_pvalue,trait_category
+rs31528094,MHC,766397462,5,8.08E-15,liver lipid class
+rs29730734,MHC,761054117,5,8.66E-14,liver lipid class
+rs30974178,CE.14.0,699988847,5,1.10E-13,liver lipids
+rs30980486,CE.14.0,699813620,5,1.10E-13,liver lipids
+rs30981644,CE.14.0,699808461,5,1.10E-13,liver lipids
+rs6236784,CE.14.0,700189608,5,1.27E-13,liver lipids
+rs6237323,CE.14.0,700189532,5,1.27E-13,liver lipids
+rs32728123,PE.36.1,1318366106,9,5.62E-13,liver lipids
+rs33122540,PE.36.1,1367757446,9,9.51E-13,liver lipids
+rs30944142,CE.14.0,700239004,5,1.13E-12,liver lipids
