@@ -19,7 +19,7 @@ server <- function(input, output, session) {
   if (!interactive()) sink(stderr(), type = "output")
 
   # Log message to identify the time CoffeeProt was accessed
-  message(paste0("Status: CoffeeProt Version 0.1 (14/10/2020) is accessed at ", date()))
+  message(paste0("Status: CoffeeProt Version 1.0 (28/02/2021) is accessed at ", date()))
   
 
   # Generate the ticks that indicate whether the required datafiles have been loaded.
@@ -56,11 +56,52 @@ server <- function(input, output, session) {
   
 
 ###################################################################################################################################################
-#### Demo data processing
+#### Demo data tables, downloader and example data loading
 ###################################################################################################################################################
   
+  # Demo tables ----
+  # Rendered tables displayed on the Welcome page
+  output$demotable_protein <- DT::renderDT({return(DT::datatable(demotable_p, rownames = FALSE, class = "compact stripe", caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Example proteomics table. ", "</b>","<em>","Protein data must be uploaded as a matrix in which the first column contains protein identifiers and the remaining columns contain quantitative measurements. The accepted protein identifiers are gene names, Uniprot identifiers and ENSEMBL gene identifiers.","</em>"))), options = list(scrollX = TRUE, pageLength = 10, dom = 't')))}, server = FALSE)
+  output$demotable_qtl <- DT::renderDT({return(DT::datatable(demotable_q, rownames = FALSE, class = "compact stripe", caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Example pQTL table. ", "</b>","<em>","For the QTL data upload the matrix should contain separate columns containing (1) rsIDs, (2) SNP location, (3) SNP chromosome, (4) gene names, (5) gene start location, (6) gene end location, (7) gene chromosome, (8) a measure of significance and (9) a proxy or grouping column.","</em>"))), options = list(scrollX = TRUE, pageLength = 10, dom = 't')))}, server = FALSE)
+  output$demotable_pheno <- DT::renderDT({return(DT::datatable(demotable_pheno, rownames = FALSE, class = "compact stripe", caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Example phenotype table. ", "</b>","<em>","For the QTL data upload the matrix should contain separate columns containing (1) rsIDs, (2) gene names, (3) SNP location, (4) SNP chromosome, (5) a measure of significance and (6) a proxy or grouping column.","</em>"))), options = list(scrollX = TRUE, pageLength = 10, dom = 't')))}, server = FALSE)
   
-  # Load the Parker demofiles (from /data/parker.zip) on buttonpress 
+  
+  # Demoset text ----
+  # Text description of the downloadable Parker study demo files, displayed on the Welcome page
+  output$demoref <- renderUI({
+    if(input$demoset == "parker"){
+      HTML('
+    <table cellspacing=5>
+    <tr><td style="padding-right: 10px">Publication:</td><td><a href="https://doi.org/10.1038/s41586-019-0984-y" target="_blank">An integrative systems genetic analysis of mammalian lipid metabolism</a></td></tr>
+    <tr><td style="padding-right: 10px">Number of samples:</td><td>306</td></tr>
+    <tr><td style="padding-right: 10px">Number of proteins:</td><td>8,370</td></tr>
+    <tr><td style="padding-right: 10px">Number of pQTLs</td><td>140,104 - 571,205</td></tr>
+    <tr><td style="padding-right: 10px">Number of molQTLs</td><td>8,032</td></tr>
+    <tr><td style="padding-right: 10px">Filesize:</td><td>12.7 MB</td></tr></table><br>')
+    } })
+  
+  
+  # Downloadbutton demoset ----
+  # Downloadbutton for the zipped demo studies included in CoffeeProt (currently only Parker et al.)
+  output$dl_demoset_ui <- renderUI({
+    if(input$demoset != "")
+      downloadButton("downloadData", label = "Download Demo Dataset")
+  })
+  
+  
+  # Download demo dataset handler ----
+  # Downloadhandler for the zipped demo studies included in CoffeeProt (currently only Parker et al.)
+  output$downloadData <- downloadHandler(
+    filename <- function() {paste(input$demoset, "zip", sep=".")},
+    
+    content <- function(file) {message("Action: User downloaded the demo dataset")
+      file.copy(paste0("data/",input$demoset,".zip"), file)},
+    contentType = "application/zip",
+  )
+  
+  # Automated demo file loading ----
+  # Load the Parker demofiles (from /data/parker.zip) on buttonpress (blue button)
+  # Loaded files include the proteomics (protein.csv), pQTL (pQTL_1e-4_.csv) and lipidQTL (lQTL.csv) data
   observeEvent(input$demobutton_files, {
     
     sendSweetAlert(session = session, title = "Loading datafiles!", text = "Please be patient, this will just take a minute...", type = "info", btn_labels = NA, closeOnClickOutside = FALSE)
@@ -121,6 +162,7 @@ server <- function(input, output, session) {
 #### Protein data processing
 ###################################################################################################################################################
   
+  
   # Protein data - input - renderUI_correlation ----
   output$correlation_ui <- renderUI({
     req(forout_reactive$protanno)
@@ -128,6 +170,7 @@ server <- function(input, output, session) {
         selectInput("cor_type", label = ("Correlation / Co-regulation method"), choices = list("Biweight midcorrelation" = "bicor", "Pearson's correlation" = "pearson", "Spearman's correlation" = "spearman"), selected = 1),
         selectInput("fdr_type", label = ("Adjusted p-value method"), choices = list("Benjamini-Hochberg" = "BH", "Bonferroni" = "bonferroni"), selected = 1),
         actionButton(inputId = "correlate", label = "Correlate!"))  })
+  
   
   # Protein data - input - renderUI_correlation_sensitivity ----
   output$sensitivity_ui <- renderUI({
@@ -140,6 +183,7 @@ server <- function(input, output, session) {
         The colours and numbers indicate the percentage of protein pairs found in that database. Plots are made for 3 databases, for the 'correlated' and 'non-correlated' pairs.", "</em>")), br(),
         actionButton(inputId = "sensitivity_analysis", label = "Perform sensitivity analysis!"))  })
   
+  
   # Protein data - input - renderUI_protfile ----
   output$protfile_ui <- renderUI({
     tagList(
@@ -150,11 +194,11 @@ server <- function(input, output, session) {
     )
     })
   
+  
   # Protein data - input - renderUI_protid ----
   output$prot_select_ui <- renderUI({
     req(forout_reactive$protdf)
     tagList(
- 
       tags$div(title="Proteins with more missing values than the selected percentage are removed",
       sliderInput("protNA", "Percentage missing values allowed", 0, 100, 20)),
       actionButton(inputId = "protannotate", label = "Process Proteins!") )})
@@ -207,20 +251,21 @@ server <- function(input, output, session) {
       db_hpa <<- db_hpa %>% mutate(CP_loc = sapply(strsplit(db_hpa$CP_loc, ";"), function(x) paste(unique(x), collapse = ";"))) %>% select(-ENSG, -Uniprot, -Reliability)
       
       
-      req(forout_reactive$protdf)
-      req(input$protNA)    
-      
-      ## Save the number of values prior to filtering in a reactive value
-      ## (For plotting purposes)
+      # Confirm that the protein data and protNA are present
+      req(forout_reactive$protdf, input$protNA)
+
+      # Save the number of values prior to filtering in a reactive value (for plotting purposes)
       forout_reactive$protnum <- nrow(forout_reactive$protdf)
       
-      ### Filtering missing values
+      # Filtering missing values based on user input
       df <- forout_reactive$protdf %>% filter(rowSums(is.na(.)) <= (ncol(.) * (input$protNA/100))) %>% mutate(varID = paste0("x",1:nrow(.))) %>% select(varID, everything())
       names(df) <- gsub(" ", "_", names(df))
       
       forout_reactive$protfilter <- df
       
       # Converting ID's to gene names (GREPL finds UNIPROT IDs https://www.uniprot.org/help/accession_numbers)
+      # The else if statement below detects ENSEMBL gene names (starting with ENS)
+      # If neither pattern is detected, assume that column already contains gene names
       if((grepl("^[A-z][0-9][0-9,A-z][0-9,A-z][0-9,A-z][0-9]", df$ID) %>% sum / length(df$ID) * 100) > 50){
         
         uniKeys <- (AnnotationDbi::keys(org.Hs.eg.db::org.Hs.eg.db, keytype="SYMBOL")) %>%  c(., AnnotationDbi::keys(org.Mm.eg.db::org.Mm.eg.db, keytype="SYMBOL")) #Take all gene symbols from DB 
@@ -241,10 +286,12 @@ server <- function(input, output, session) {
         message("Status: No gene name conversion needed")
       }
       
+      
+      # Add drug-gene interaction database annotations by joining on gene names
       df <- left_join(df %>% mutate(ID = tolower(.$ID)), db_hpa, by = c("ID" = "Gene")) %>% mutate(inDGIdb = tolower(ID) %in% tolower(db_dgidb$gene_name)) %>% select(varID, ID, `IF main protein location`:CP_loc, inDGIdb, everything())
       
       
-      # If manual annotations have been uploaded, add them to df here...
+      # If manual annotations have been uploaded, add them to df here... (Currently in development)
       if(isTruthy(input$protfile_manual)){
         print("manual anno file found")
         protanno_manual <- cp_fileimport(input$protfile_manual) %>% select(1:2) %>% `colnames<-`(c("ID", "manual_annotation")) %>% mutate(ID = tolower(.$ID))
@@ -271,11 +318,11 @@ server <- function(input, output, session) {
           message("Status: No gene name conversion needed")
         }
         
-        
         df <- left_join(df, protanno_manual) %>% select(varID, ID, `IF main protein location`:CP_loc, inDGIdb, manual_annotation, everything())
         
       }
       
+      # Save the resulting annotated data and report that the processing has been completed
       forout_reactive$protanno <- df
 
       message(paste0("Action: User annotated the protein data"))
@@ -295,8 +342,11 @@ server <- function(input, output, session) {
       req(forout_reactive$protdf)
       sendSweetAlert(session = session, title = "Commencing Correlation!", text = "Please be patient, this will just take a few minutes...", type = "info", btn_labels = NA, closeOnClickOutside = FALSE)
       
+      # Impute missing values prior to performing correlation analyses
       df <- imputeLCMD::impute.MinDet(forout_reactive$protfilter %>% dplyr::select(3:ncol(.))) %>% `colnames<-`(paste0("X", colnames(.))) %>% `row.names<-`(forout_reactive$protfilter$varID)
       
+      # Perform correlation based on the selected method (bicor, pearson, spearman)
+      # Created a cor dataframe containing protein 1 and 2, correlation coefficient, p-value, q-value columns
       if(input$cor_type == "bicor"){
         
         message("Action: User selected: bicor")
@@ -334,30 +384,38 @@ server <- function(input, output, session) {
       # Editing cor into complex and paircount ----
       sendSweetAlert(session = session, title = "Analyzing results", text = "Please be patient, this will just take a few minutes...", type = "info", btn_labels = NA, closeOnClickOutside = FALSE)
       
+      
+      # Join annotations onto the cor dataframe for the first and second protein per row
       cor <- cor %>% 
         left_join(., forout_reactive$protanno %>% dplyr::select(varID, ID) %>% `colnames<-`(., c("varID", "varID1")), by = c("p1" = "varID")) %>% 
         left_join(., forout_reactive$protanno %>% dplyr::select(varID, ID) %>% `colnames<-`(., c("varID", "varID2")), by = c("p2" = "varID")) %>% as.data.frame()
       
+      
+      # Create a concatenated Variable-Variable column (VarVar) indicating the two proteins that are correlated
       cor$VarVar <- paste(pmin(as.character(cor$varID1),as.character(cor$varID2)), pmax(as.character(cor$varID1),as.character(cor$varID2)), sep = "_")
- 
+      
+      
+      # Test database presence of the VarVar column in CORUM, BioPlex etc.
       complex <- cor %>% mutate(VarVar = tolower(VarVar)) %>% left_join(., db_corum_gp %>% mutate(Genepair = tolower(Genepair)) %>% dplyr::select(ComplexID:ComplexName, ComplexIDName), by = c("VarVar" = "Genepair")) %>% select(-p1, -p2) %>% mutate(inCORUM = is.na(ComplexID) == FALSE) %>% left_join(., db_bioplex3_4pc %>% mutate(VarVar = tolower(VarVar)) %>% dplyr::select(VarVar, pW), by = "VarVar") %>% mutate(inBioplex = is.na(pW) == FALSE) %>% left_join(., db_string) %>% distinct(VarVar, .keep_all = TRUE)
       
+      
+      # Check whether the two correlated proteins share a subcellular localization and report the overlap (slow computation)
       complex <- complex %>% left_join(., forout_reactive$protanno %>% dplyr::select(ID, CP_loc) %>% `colnames<-`(c("ID", "loc1")), by = c("varID1" = "ID")) %>% 
         left_join(., forout_reactive$protanno %>% dplyr::select(ID, CP_loc) %>% `colnames<-`(c("ID", "loc2")), by = c("varID2" = "ID")) %>% mutate(overlap.loc = mapply(function(x, y) paste(intersect(x, y), collapse=";"), strsplit(.$loc1, ";"), strsplit(.$loc2, ";")) ) %>% mutate(overlap.loc = sub("NA", "", .$overlap.loc)) %>% mutate(share.loc = (overlap.loc != ""))
       
-      # Assigning reactive values ----
+      
+      # Assigning results to reactive values and report progress to the user
       forout_reactive$cor <- cor
       forout_reactive$table_complex <- complex
       updateProgressBar(session = session, id = "pb2", value = 100)
       
       sendSweetAlert(session = session, title = "Correlation Success!", text = "Please proceed to the QTL workflow (optional) or Analysis tabs", type = "success")
       message("Status: Protein correlation success")  
-      
-      
+
     }})
   
   
-  # renderUI_annogauge ----
+  # renderUI for annotation gauge plot ----
   output$prot_annogauge_ui <- renderUI({
     req(forout_reactive$protanno)
     box(title = "Protein annotation summary", width = 12, plotOutput("anno_gauge") %>% withSpinner(),
@@ -366,7 +424,7 @@ server <- function(input, output, session) {
         (b.) Percentage of proteins annotated with Cell Atlas protein localization as determined by immunofluorescent staining.", "</em>")))
   })  
   
-  # renderUI_annotables ----
+  # renderUI for annotation tables ----
   output$cortable_ui <- renderUI({
     req(forout_reactive$table_complex)
     tagList(tabBox(title = "Protein summary tables", width = 12,
@@ -385,15 +443,18 @@ server <- function(input, output, session) {
     fileInput("qtlfile", "Choose file", multiple = FALSE, accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv",".xls",".xlsx")),
     tags$div(title="Upload a haplotype mapping file  in .csv, .xls or .xlsx format (optional)", fileInput("haplotype", "Choose haplotype mapping file (optional)", multiple = FALSE, accept = c("text/csv","text/comma-separated-values,text/plain",".csv",".xls",".xlsx"))))})
   
+  
   # Analysis - select_qtlfiltertype ----
   output$qtl_filtertype_ui <- renderUI({
     req(forout_reactive$qtldf)
     radioGroupButtons(inputId = "qtl_filtertype", label = "QTL filter type", choices = c('Single cut-off' = "single", 'Proxy cut-off' = "proxy"), selected = "single", justified = TRUE) })
   
+  
   # Analysis - select_qtlfiltertype ----
   output$qtl_quanttype_ui <- renderUI({
     req(forout_reactive$qtldf)
     radioGroupButtons(inputId = "qtl_quanttype", label = "Significance data type", choices = c('p-value' = "pval", 'LOD' = "lod"), selected = "pval", justified = TRUE) })
+  
   
   # Analysis - qtl_anno_ve ----
   output$qtl_anno_ve_ui <- renderUI({
@@ -434,10 +495,11 @@ server <- function(input, output, session) {
             sliderTextInput(inputId = paste0("proxy_", forout_reactive$proxylist_qtl[i]), label = paste0("Filter LOD by proxy: ", forout_reactive$proxylist_qtl[i]), choices = c(0,1,10,100,1000), selected = 1, grid = TRUE)
           }) } } })
   
+  
   # QTL data - input - renderUI_proxyselect ----
   output$qtl_uploadfinish_ui <- renderUI({
     req(input$qtl_filtertype, forout_reactive$qtldf)
-    actionButton(inputId = "qtl_final_upload", label = "Process pQTLs!") })
+    actionButton(inputId = "qtl_final_upload", label = "Process pQTLs/eQTLs!") })
   
   
   # QTL data - fileinput ----
@@ -466,9 +528,8 @@ server <- function(input, output, session) {
       forout_reactive$qtldf <- df
       
     }
-    
-    
   })
+  
   
   # Haplotype data - processing ----
   observeEvent(input$haplotype, {
@@ -486,11 +547,9 @@ server <- function(input, output, session) {
       
       df <- df %>% mutate(LD_name = paste0("LD_Chr_", !! rlang::sym(colnames(df)[1]), "_", !! rlang::sym(colnames(df)[2]), "_", !! rlang::sym(colnames(df)[3])))
       
-      
     } else {
       forout_reactive$haplotype_valid <- FALSE
       sendSweetAlert(session = session, title = "Haplotype uploaded", text = "File format appears to be invalid.", type = "error")
-      
     }
     
     forout_reactive$haplotypedf <- df
@@ -533,14 +592,14 @@ server <- function(input, output, session) {
         
       }
     
-    #Pvalues of exactly zero are problematic when log transformed. Pvalue of zero are replaced with the lowest non-zero pvalue
+    # Pvalues of exactly zero are problematic when log transformed. Pvalue of zero are replaced with the lowest non-zero pvalue
     pvalrank <- df %>% select(!! rlang::sym(forout_reactive$qtlcolnames[8])) %>% distinct() %>% arrange(!! rlang::sym(forout_reactive$qtlcolnames[8])) %>% head()
     if(pvalrank[[1]][1] == 0){df <- df %>% mutate(!! rlang::sym(forout_reactive$qtlcolnames[8]) := case_when( (!! rlang::sym(forout_reactive$qtlcolnames[8]) == 0) ~ pvalrank[[1]][2], TRUE ~ !! rlang::sym(forout_reactive$qtlcolnames[8])))}
     
-    #Determine is a gene is intragenic or not
+    # Determine is a gene is intragenic or not
     df <- df %>% mutate(CP_Intragenic_QTL = case_when( (!! rlang::sym(forout_reactive$qtlcolnames[2]) >= !! rlang::sym(forout_reactive$qtlcolnames[5]) & !! rlang::sym(forout_reactive$qtlcolnames[2]) <= !! rlang::sym(forout_reactive$qtlcolnames[6])) ~ "TRUE", TRUE ~ "FALSE"))
     
-    #Remove chromosome entries that start with chr* or chromosome* 
+    # Remove chromosome entries that start with chr* or chromosome* 
     df <- df %>% mutate(!! rlang::sym(forout_reactive$qtlcolnames[3]) := stringr::str_remove_all(!! rlang::sym(forout_reactive$qtlcolnames[3]), stringr::regex("chromosome_|chr_|chromosome-|chr-|chromosome |chr |chromosome|chr", ignore_case = TRUE)))
     df <- df %>% mutate(!! rlang::sym(forout_reactive$qtlcolnames[7]) := stringr::str_remove_all(!! rlang::sym(forout_reactive$qtlcolnames[7]), stringr::regex("chromosome_|chr_|chromosome-|chr-|chromosome |chr |chromosome|chr", ignore_case = TRUE)))
     
@@ -550,20 +609,19 @@ server <- function(input, output, session) {
     
     # Added code to process haplotype data if present...
     if(!isTruthy(forout_reactive$haplotypedf)){
-      print("processing without haplotypes")
+      message("processing without haplotypes")
       forout_reactive$ld_processed <- FALSE
     } else if(isTruthy(forout_reactive$haplotypedf) & forout_reactive$haplotype_valid == TRUE){
-      print("haplotype uploaded and valid")
+      message("haplotype uploaded and valid")
       
       # Perform a fuzzy join with the haplotype data to add LD block information to the pQTL data
-      #This worked but the haplotype data is not cumulative, and should be converted manually?
       df <- as.data.table(df)[as.data.table(forout_reactive$haplotypedf), on=c(paste0(colnames(df)[3],"==", colnames(forout_reactive$haplotypedf)[1]), paste0(colnames(df)[2],">", colnames(forout_reactive$haplotypedf)[2]), paste0(colnames(df)[2],"<",colnames(forout_reactive$haplotypedf)[3])), names(forout_reactive$haplotypedf)[4] := mget(paste0("i.", names(forout_reactive$haplotypedf)[4]))] %>% as.data.frame()
       
       print(head(df))
       
       forout_reactive$ld_processed <- TRUE
     } else {
-      print("haplotype uploaded but invalid")
+      message("haplotype uploaded but invalid")
       forout_reactive$ld_processed <- FALSE
     }
     
@@ -613,8 +671,7 @@ server <- function(input, output, session) {
     df[[forout_reactive$qtlcolnames[7]]] <- factor(df[[forout_reactive$qtlcolnames[7]]], levels=c(1:22,"X","Y","MT")) %>% droplevels()
 
     
-
-        #### CONVERTING ID TO GENE NAME
+    # CONVERTING ID TO GENE NAME
     # Converting ID's to gene names (GREPL finds UNIPROT IDs https://www.uniprot.org/help/accession_numbers)
     if((grepl("^[A-z][0-9][0-9,A-z][0-9,A-z][0-9,A-z][0-9]", df %>% select(!! rlang::sym(forout_reactive$qtlcolnames[4])) %>% unlist) %>% sum / length(df %>% select(!! rlang::sym(forout_reactive$qtlcolnames[4])) %>% unlist) * 100) > 50){
       
@@ -702,7 +759,6 @@ server <- function(input, output, session) {
       
     }
     
-    
       updateProgressBar(session = session, id = "pb3", value = 100)
       
     } else {
@@ -711,11 +767,9 @@ server <- function(input, output, session) {
       
     }
 
-
     })
   
 
-  
   # Sensitivity analysis
   observeEvent(input$sensitivity_analysis, {
     req(forout_reactive$table_complex)
@@ -769,7 +823,6 @@ server <- function(input, output, session) {
   })
   
   
-  
   #Create circos on buttonclick ----
   observeEvent(input$circos_bttn, {
     req(forout_reactive$table_qtl_processed, input$circos_select)
@@ -777,6 +830,7 @@ server <- function(input, output, session) {
     forout_reactive$cp_circos <- cp_circos_create(forout_reactive$table_qtl_processed, input$circos_select)
     
   })
+  
   
   # Analysis - circos ----
   output$qtl_circos <- renderUI( {
@@ -788,9 +842,12 @@ server <- function(input, output, session) {
     
     forout_reactive$circosplot <- s()
     
-    HTML(forout_reactive$circosplot)
-    
+    tagList(
+    HTML(forout_reactive$circosplot),
+    HTML(paste("<b>", "Figure: pQTL/eQTL Circos plot. ", "</b>", "<em>", "The pQTL/eQTL Circos plot visualizes the locations of SNPs affecting the user-specified protein targets. The outer labels show the protein targets (black) and chromosome labels (gray). The central dot plots indicate the density of SNPs at any location, where points closer to the center of the plot indicate a high density of SNPs. The edges between proteins and SNPs highlight the relative p-values among the QTLs where the lowest p-values are coloured blue, and the higher p-values are coloured gray.", "</em>"))
+    )
   })  
+  
   
   # Download circos ----
   output$download_circos <- downloadHandler(
@@ -809,61 +866,33 @@ server <- function(input, output, session) {
   # renderUI_circos ----
   output$qtl_circos_ui <- renderUI({
     req(forout_reactive$table_qtl_processed)
-    box(title = "pQTL Circos", width = 12, isolate(selectizeInput("circos_select", "Select Gene/Protein", choices = c(forout_reactive$table_qtl_processed %>% select(!! rlang::sym(forout_reactive$qtlcolnames[4])) %>% arrange(!! rlang::sym(forout_reactive$qtlcolnames[4])) %>% unique %>% as.vector()), selected = NULL, multiple = TRUE, options = list(maxItems = 10))),
+    box(title = "pQTL/eQTL Circos", width = 12, isolate(selectizeInput("circos_select", "Select Gene/Protein", choices = c(forout_reactive$table_qtl_processed %>% select(!! rlang::sym(forout_reactive$qtlcolnames[4])) %>% arrange(!! rlang::sym(forout_reactive$qtlcolnames[4])) %>% unique %>% as.vector()), selected = NULL, multiple = TRUE, options = list(maxItems = 10))),
         actionButton(inputId = "circos_bttn", label = "Make Circos!"), downloadButton("download_circos", "Download Circos"),
-        uiOutput("qtl_circos") %>% withSpinner(),
-        HTML(paste("<b>", "Figure: pQTL Circos plot. ", "</b>",
-                   "<em>", "The pQTL Circos plot visualizes the locations of SNPs affecting the user-specified protein targets. The outer labels show the protein targets (black) and chromosome labels (gray). The central dot plots indicate the density of SNPs at any location, where points closer to the center of the plot indicate a high density of SNPs. The edges between proteins and SNPs highlight the relative p-values among the QTLs where the lowest p-values are coloured blue, and the higher p-values are coloured gray.", "</em>")))
+        uiOutput("qtl_circos") %>% withSpinner())
   }) 
   
-  # renderUI_snploc ----
-  output$qtl_snploc_ui <- renderUI({
-    req(forout_reactive$table_qtl_processed)
-    box(title = "pQTL location summary", width = 12, plotOutput("qtl_snploc") %>% withSpinner(),
-        HTML(paste("<b>", "Figure: pQTL genomic location. ", "</b>",
-                   "<em>", "The 2-dimensional density of genomic locations is shown in the main panel, where high density is shown in blue, and low density as grey. Separate density plots are produced for the SNP locations (x-axis) and gene locations (y-axis).", "</em>")))
-  })  
-  
-  
-  # renderUI_annodonut ----
-  output$qtl_annodonut_ui <- renderUI({
-    req(forout_reactive$qtl_annotated == TRUE)
-    box(title = "pQTL annotation summary", width = 12, plotOutput("qtl_anno_donut") %>% withSpinner(),
-        HTML(paste("<b>", "Figure: pQTL annotation summary. ", "</b>",
-                   "<em>", "Percentage of QTLs annotated with ENSEMBL Variant Effects.", "</em>")))
-  }) 
-  
-  # renderUI_annodonut ----
-  output$qtl_impactdonut_ui <- renderUI({
-    req(forout_reactive$qtl_annotated == TRUE)
-    box(title = "pQTL annotation summary", width = 12, plotOutput("qtl_impact_donut") %>% withSpinner(),
-        HTML(paste("<b>", "Figure: pQTL annotation summary. ", "</b>",
-                   "<em>", "Percentage of QTLs annotated with ENSEMBL Variant Effect Impact rankings.", "</em>")))
-  })
   
   # renderUI_proxydonut ----
+  # UI for QTL summary box on the pQTL/eQTL upload page
   output$qtl_proxydonut_ui <- renderUI({
     req(forout_reactive$table_qtl_processed)
     
     if(forout_reactive$qtl_annotated == FALSE){
-      box(title = "pQTL annotation summary", width = 12, plotOutput("qtl_proxy_donut") %>% withSpinner(),
-          HTML(paste("<b>", "Figure: pQTL annotation summary. ", "</b>",
-                     "<em>", "Percentage of QTLs annotated by proxy.", "</em>")))
-      
+      tagList(tabBox(title = "QTL summary", width = 12,
+                     tabPanel("Proxy annotation", plotOutput("qtl_proxy_donut") %>% withSpinner(), HTML(paste("<b>", "Figure: pQTL/eQTL annotation summary. ", "</b>", "<em>", "Percentage of QTLs annotated by proxy.", "</em>"))),
+                     tabPanel("QTL location",  plotOutput("qtl_snploc") %>% withSpinner(), HTML(paste("<b>", "Figure: pQTL/eQTL genomic location. ", "</b>", "<em>", "The 2-dimensional density of genomic locations is shown in the main panel, where high density is shown in blue, and low density as grey. Separate density plots are produced for the SNP locations (x-axis) and gene locations (y-axis).", "</em>")))))
     } else {
       
-      tagList(tabBox(title = "pQTL annotation summary", width = 12,
-                     tabPanel("pQTL proxy annotation", plotOutput("qtl_proxy_donut") %>% withSpinner(), HTML(paste("<b>", "Figure: pQTL annotation summary. ", "</b>", "<em>", "Percentage of QTLs annotated by proxy.", "</em>"))),
-                     tabPanel("pQTL impact annotation", plotOutput("qtl_impact_donut") %>% withSpinner(), HTML(paste("<b>", "Figure: pQTL annotation summary. ", "</b>", "<em>", "Percentage of QTLs annotated by variant effect impact ratings", "</em>"))),
-                     tabPanel("pQTL variant effect annotation", plotOutput("qtl_anno_donut") %>% withSpinner(), HTML(paste("<b>", "Figure: pQTL annotation summary. ", "</b>", "<em>", "Percentage of QTLs annotated by variant effects", "</em>"))) ) )
-      
-    }
-    
-
+      tagList(tabBox(title = "QTL summary", width = 12,
+                     tabPanel("Proxy annotation", plotOutput("qtl_proxy_donut") %>% withSpinner(), HTML(paste("<b>", "Figure: pQTL/eQTL annotation summary. ", "</b>", "<em>", "Percentage of QTLs annotated by proxy.", "</em>"))),
+                     tabPanel("Impact annotation", plotOutput("qtl_impact_donut") %>% withSpinner(), HTML(paste("<b>", "Figure: pQTL/eQTL annotation summary. ", "</b>", "<em>", "Percentage of QTLs annotated by variant effect impact ratings", "</em>"))),
+                     tabPanel("Variant effect annotation", plotOutput("qtl_anno_donut") %>% withSpinner(), HTML(paste("<b>", "Figure: pQTL/eQTL annotation summary. ", "</b>", "<em>", "Percentage of QTLs annotated by variant effects", "</em>"))),
+                     tabPanel("QTL location",  plotOutput("qtl_snploc") %>% withSpinner(), HTML(paste("<b>", "Figure: pQTL/eQTL genomic location. ", "</b>", "<em>", "The 2-dimensional density of genomic locations is shown in the main panel, where high density is shown in blue, and low density as grey. Separate density plots are produced for the SNP locations (x-axis) and gene locations (y-axis).", "</em>")))) )  }
   })  
   
   
-  # renderUI_annogauge ----
+  # renderUI_qtl_tables ----
+  # UI for QTL result tables
   output$qtl_tables_ui <- renderUI({
     req(input$qtl_final_upload)
     tagList(tabBox(title = "pQTL result tables", width = 12,
@@ -875,7 +904,7 @@ server <- function(input, output, session) {
   
 
 ###################################################################################################################################################
-#### pheno data processing
+#### Phenotype (molQTL/GWAS) data processing
 ###################################################################################################################################################
   
   # pheno data - input - renderUI_phenofile ----
@@ -1010,35 +1039,7 @@ server <- function(input, output, session) {
     
     df[[forout_reactive$phenocolnames[4]]] <- factor(df[[forout_reactive$phenocolnames[4]]], levels=c(1:22,"X","Y","MT"))
     
-    ### TEST IF SNP_BP is cumulative
-    snploccumulative <- cp_is_cumulative(df, forout_reactive$phenocolnames[4], forout_reactive$phenocolnames[3])
-    
-    #abab_temporary turned off snpcumulative
-    snploccumulative <- TRUE
-    
-    
-    # Convert SNP locations to cumulative values if needed
-    if(snploccumulative == FALSE){
-      message("Status: Your snp_loc is not cumulative")
-      
-      df <- df %>% 
-        
-        # Compute chromosome size
-        group_by(!! rlang::sym(forout_reactive$phenocolnames[4])) %>% 
-        summarise(chr_len=max(!! rlang::sym(forout_reactive$phenocolnames[3]))) %>% 
-        
-        # Calculate cumulative position of each chromosome
-        mutate(tot=cumsum(as.numeric(chr_len))-as.numeric(chr_len)) %>%
-        select(-chr_len) %>%
-        
-        # Add this info to the initial dataset
-        left_join(df, .) %>%
-        
-        # Add a cumulative position of each SNP
-        arrange(!! rlang::sym(forout_reactive$phenocolnames[4]), !! rlang::sym(forout_reactive$phenocolnames[3])) %>%
-        mutate( !! rlang::sym(forout_reactive$phenocolnames[3]):= (!! rlang::sym(forout_reactive$phenocolnames[3])+tot)) %>% ungroup() %>% select(-tot)}
-    
-    
+ 
       forout_reactive$table_pheno_processed <- df 
       forout_reactive$pheno_annotated <- FALSE
       sendSweetAlert(session = session, title = "Processing Success!", text = "Upload other data types or proceed to the analysis tabs", type = "success")
@@ -1161,8 +1162,6 @@ server <- function(input, output, session) {
       }
       
     }
-    
-
 
   })
   
@@ -1231,8 +1230,6 @@ server <- function(input, output, session) {
           downloadButton("download_baitnetworktable", "Download network as table"))
       
     }
-    
-
     
   })
   
@@ -1432,6 +1429,7 @@ server <- function(input, output, session) {
       }
   })
   
+  
   # Analysis - ui_param_network_bait ----
   output$baitselect_ui2 <- renderUI({
     req(input$baittype, forout_reactive$table_qtl_processed, forout_reactive$table_pheno_processed)
@@ -1446,8 +1444,6 @@ server <- function(input, output, session) {
       
     } 
   })
-  
-  
   
   
   # analysis - bait_network on buttonpress ----
@@ -1484,7 +1480,7 @@ server <- function(input, output, session) {
     }
     
     } else {
-      # Run the following if data SHOULD not be summarized by LD
+      # Run the following if data SHOULD NOT be summarized by LD
       
       if(input$baittype == "qtl"){
         
@@ -1511,9 +1507,6 @@ server <- function(input, output, session) {
       
     } else if(input$baitnetwork_qtlsummarize == "LD") {
       
-      abab_pheno <<- bait_pheno
-      abab_qtl <<- bait_qtl
-      
       bait_edge <- rbind(bait_pheno, bait_qtl %>% `colnames<-`(colnames(bait_pheno))) %>% `colnames<-`(c("varID1", "varID2", "chromosome","edge", "LD_name", "datatype")) %>% mutate(varID1 = case_when(is.na(LD_name) ~ as.character(varID1), TRUE ~ LD_name)) %>% select(-LD_name) %>% mutate(edge = edge %>% tidyr::replace_na(., "Not annotated"))
       
       print(head(bait_edge))
@@ -1531,11 +1524,8 @@ server <- function(input, output, session) {
       bait_edge <- rbind(bait_edge, drug %>% filter(gene_name %in% (bait_qtl %>% select(!! rlang::sym(forout_reactive$qtlcolnames[4])) %>% unlist %>% tolower())) %>% mutate(chromosome = "", edge = "Drug-gene interaction", datatype = "Drug-gene interaction") %>% `colnames<-`(colnames(bait_edge)) ) %>% mutate(varID2 = case_when(tolower(as.character(varID2)) %in% (bait_qtl %>% select(!! rlang::sym(forout_reactive$qtlcolnames[4])) %>% unlist %>% tolower) ~ tolower(as.character(varID2)), TRUE ~ as.character(varID2)) ) 
     }
     
-    
     bait_vertices <- unlist(list(bait_edge[,1] %>% as.character %>% unlist, bait_edge[,2] %>% as.character %>% unlist)) %>% as.data.frame() %>% `colnames<-`(c("var")) %>% group_by(var) %>% summarize(n=n()) %>% mutate(nodetype = case_when(var %in% bait_qtl[[forout_reactive$qtlcolnames[4]]] == TRUE ~ "Protein", var %in% db_dgidb$drug_name == TRUE ~ "Drug", var %in% bait_edge$varID1 == TRUE ~ "SNP", var %in% bait_pheno[[forout_reactive$phenocolnames[2]]] == TRUE ~ "Phenotype"))
     
-    x1 <<- bait_edge
-    x2 <<- bait_vertices
     
     if(nrow(bait_vertices) > 0){
       nodes <- bait_vertices %>% mutate(numid = 0:(nrow(bait_vertices)-1))
@@ -1543,26 +1533,18 @@ server <- function(input, output, session) {
       nodes <- bait_vertices %>% mutate(numid = 0)
     }
     
-    x3 <<- nodes
-    
     if(nrow(bait_vertices) > 2000){
       sendSweetAlert(session = session, title = "Error, too many network nodes (>2000)", text = "Please select a stricter correlation cut-off", type = "error")
     } else {  
     
     links <- bait_edge %>% mutate(varID1 = as.factor(varID1), varID2 = as.factor(varID2)) %>% left_join(., nodes %>% select(var, numid) %>% `colnames<-`(c("varID1", "source"))) %>% left_join(., nodes %>% select(var, numid) %>% `colnames<-`(c("varID2", "target"))) %>% select(source, target, everything())
     
-    x4 <<- links
-    
     F2 <- colorRampPalette(c("#FFAE42", "#094183"), bias = nrow(links), space = "rgb", interpolate = "linear")
     colCodes <- F2(length(unique(links$edge)))
     links <- links %>% mutate(edgecol = sapply(links$edge, function(x) colCodes[which(sort(unique(links$edge)) == x)])) %>% group_by(source, target) %>% distinct() %>% ungroup()
     
-    x5 <<- links
-    
     if(input$nodelabels == "None"){nodes <- nodes %>% mutate(var = NA)}
     if(input$nodelabels == "No SNP labels"){nodes <- nodes %>% mutate(var = case_when(nodetype %in% c("SNP") ~ "", TRUE ~ nodes$var))}
-    
-    x6 <<- nodes
     
     forout_reactive$bait_nodes <- nodes
     forout_reactive$bait_links <- links
@@ -1582,6 +1564,7 @@ server <- function(input, output, session) {
     forceNetwork(Links = forout_reactive$bait_links, Nodes = forout_reactive$bait_nodes, Source = 'source', Target = 'target', NodeID = 'var', Nodesize = 'n', Group = 'nodetype', linkColour = forout_reactive$bait_links$edgecol, charge = input$nodecharge, opacity = 0.8, fontSize = 12, zoom = TRUE, opacityNoHover = 0.4, clickAction = 'Shiny.onInputChange("nwbait_select_name", d.name), Shiny.onInputChange("nwbait_select_group", d.group)')
     
   })
+  
   
   # Analysis - network_plot_interactive ----
   output$network_bait_legend <- renderPlot( {
@@ -1607,7 +1590,6 @@ server <- function(input, output, session) {
   })
     
 
-  
   # output - fileinput - qtltable ----  
   output$qtltable <- DT::renderDT({
     req(forout_reactive$table_qtl_processed)
@@ -1615,6 +1597,7 @@ server <- function(input, output, session) {
                                       caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: pQTL summary table. ", "</b>","<em>","Table containing the pQTLs after filtering" , "</em>"))),
                                       options = list(scrollX = TRUE, pageLength = 5, dom = 'tip')))
   }, server = FALSE)
+  
   
   # output - fileinput - qtltable ----  
   output$qtltallytable <- DT::renderDT({
@@ -1635,7 +1618,8 @@ server <- function(input, output, session) {
     
   }, server = FALSE)
   
-  # output - fileinput - phenotable ----  
+  
+  # output - phenotable ----  
   output$phenotable <- DT::renderDT({
     req(forout_reactive$table_pheno_processed)
     return(forout_reactive$table_pheno_processed %>% head(., 20) %>% DT::datatable(., rownames = FALSE,
@@ -1643,7 +1627,8 @@ server <- function(input, output, session) {
                                                                                     options = list(scrollX = TRUE, pageLength = 5, dom = 'tip')))
   }, server = FALSE)
   
-  # output - fileinput - phenotable ----  
+  
+  # output - phenotallytable ----  
   output$phenotallytable <- DT::renderDT({
     req(forout_reactive$table_pheno_processed, forout_reactive$proxylist_pheno)
     
@@ -1662,7 +1647,7 @@ server <- function(input, output, session) {
     
   }, server = FALSE)
 
-  # output - annotate - protannotable ----    
+  # output - protannotable ----    
   output$protannotable <- DT::renderDT({
     req(forout_reactive$protanno)
     
@@ -1676,24 +1661,19 @@ server <- function(input, output, session) {
                                                         options = list(scrollX = TRUE, pageLength = 5, dom = 'tip')))     
     }
     
-
   }, server = FALSE)
   
 
-  # output - correlate - cortable ----    
+  # output - cortable ----    
   output$cortable <- DT::renderDT({
     
     return(forout_reactive$table_complex %>% head(20) %>% select(varID1, varID2, VarVar, everything()) %>% DT::datatable(., rownames = FALSE,
                                                                caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Protein corelation results. ", "</b>","<em>","Protein-Protein correlations are performed using user-specified parameters to discover co-regulated proteins. For each protein pair (p1 & p2) a correlation score (cor), p-value (pval) and q-value (qval) are displayed.","</em>"))),
                                                                options = list(scrollX = TRUE, pageLength = 5, dom = 'tip')))
-    
   }, server = FALSE)
   
 
     
-
-
-  
   # analysis - histogram correlation on buttonpress ----
   observeEvent(input$summary_bttn, {
   req(forout_reactive$cor, isolate(input$param_summary_cor))
@@ -1701,7 +1681,6 @@ server <- function(input, output, session) {
   })
     
  
-  
   # analysis - histogram qval on buttonpress ----
   observeEvent(input$summary_bttn, {
     req(forout_reactive$cor,  isolate(input$param_summary_cor))
@@ -1829,6 +1808,7 @@ server <- function(input, output, session) {
     
     updateProgressBar(session = session, id = "pb6", value = 100)
   })    
+  
   
   #### Render plots ----
   output$linkscore <- renderPlot({
@@ -1995,7 +1975,6 @@ server <- function(input, output, session) {
         nw_qtl <- bind_rows(nw_pqtl, nw_mqtl)
       } else if(input$network_qtlsummarize == "LD"){
         # Use the same code as the "individual SNPs" but replace rsIDs with LD names where possible  
-        # abab
         nw_pqtl <- forout_reactive$table_qtl_processed %>% filter(tolower(!! rlang::sym(forout_reactive$qtlcolnames[4])) %in% (c(nw_edge$varID1, nw_edge$varID2) %>% unique)) %>% select(!! rlang::sym(forout_reactive$qtlcolnames[1]), !! rlang::sym(forout_reactive$qtlcolnames[4]), !! rlang::sym(selection), LD_name) %>% `colnames<-`(c("varID1", "varID2", "connection", "LD_name")) %>% mutate(varID1 = case_when(is.na(LD_name) ~ as.character(varID1), TRUE ~ LD_name)) %>% select(-LD_name) %>% mutate(datatype = "SNP", varID1 = tolower(varID1), varID2 = tolower(varID2))
         nw_mqtl <- forout_reactive$table_pheno_processed %>% filter(tolower(!! rlang::sym(forout_reactive$phenocolnames[1])) %in% (c(nw_pqtl$varID1, nw_pqtl$varID2) %>% unique)) %>% select(!! rlang::sym(forout_reactive$phenocolnames[1]), !! rlang::sym(forout_reactive$phenocolnames[2]), !! rlang::sym(forout_reactive$phenocolnames[6])) %>% `colnames<-`(c("varID1", "varID2", "connection")) %>% mutate(datatype = "Phenotype", varID1 = tolower(varID1))
         nw_qtl <- bind_rows(nw_pqtl, nw_mqtl)
@@ -2068,8 +2047,8 @@ server <- function(input, output, session) {
   })
   
 
-    # Annotation - qtl_proxy_donut ----
-    output$qtl_proxy_donut <- renderPlot( {
+  # Annotation - qtl_proxy_donut ----
+  output$qtl_proxy_donut <- renderPlot( {
       
       req(forout_reactive$table_qtl_processed)
       
@@ -2079,8 +2058,8 @@ server <- function(input, output, session) {
       
     })
     
-    # Annotation - qtl_anno_donut ----
-    output$qtl_anno_donut <- renderPlot( {
+  # Annotation - qtl_anno_donut ----
+  output$qtl_anno_donut <- renderPlot( {
       
       req(forout_reactive$qtl_annotated == TRUE)
 
@@ -2398,6 +2377,7 @@ server <- function(input, output, session) {
 #### Report and exporting
 ###################################################################################################################################################
     
+  
     # Report - Select plot ----
     output$downloadplotselect_ui <- renderUI({
       req(forout_reactive)
@@ -2564,38 +2544,9 @@ server <- function(input, output, session) {
        }
   )
   
-  # Demoset text ----
-  output$demoref <- renderUI({
-    if(input$demoset == "parker"){
-      HTML('
-    <table cellspacing=5>
-    <tr><td style="padding-right: 10px">Publication:</td><td><a href="https://doi.org/10.1038/s41586-019-0984-y" target="_blank">An integrative systems genetic analysis of mammalian lipid metabolism</a></td></tr>
-    <tr><td style="padding-right: 10px">Number of samples:</td><td>306</td></tr>
-    <tr><td style="padding-right: 10px">Number of proteins:</td><td>8,370</td></tr>
-    <tr><td style="padding-right: 10px">Number of pQTLs</td><td>140,104 - 571,205</td></tr>
-    <tr><td style="padding-right: 10px">Number of molQTLs</td><td>8,032</td></tr>
-    <tr><td style="padding-right: 10px">Filesize:</td><td>12.7 MB</td></tr></table><br>')
-    } })
-  
-  # Download demo dataset handler ----
-  output$downloadData <- downloadHandler(
-    filename <- function() {paste(input$demoset, "zip", sep=".")},
-    
-    content <- function(file) {message("Action: User downloaded the demo dataset")
-      file.copy(paste0("data/",input$demoset,".zip"), file)},
-    contentType = "application/zip",
-)
-  
-  # Downloadbutton demoset ----
-  output$dl_demoset_ui <- renderUI({
-    if(input$demoset != "")
-    downloadButton("downloadData", label = "Download Demo Dataset")
-  })
-  
-  # Demo tables ----
-  output$demotable_protein <- DT::renderDT({return(DT::datatable(demotable_p, rownames = FALSE, class = "compact stripe", caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Example proteomics table. ", "</b>","<em>","Protein data must be uploaded as a matrix in which the first column contains protein identifiers and the remaining columns contain quantitative measurements. The accepted protein identifiers are gene names, Uniprot identifiers and ENSEMBL gene identifiers.","</em>"))), options = list(scrollX = TRUE, pageLength = 10, dom = 't')))}, server = FALSE)
-  output$demotable_qtl <- DT::renderDT({return(DT::datatable(demotable_q, rownames = FALSE, class = "compact stripe", caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Example pQTL table. ", "</b>","<em>","For the QTL data upload the matrix should contain separate columns containing (1) rsIDs, (2) SNP location, (3) SNP chromosome, (4) gene names, (5) gene start location, (6) gene end location, (7) gene chromosome, (8) a measure of significance and (9) a proxy or grouping column.","</em>"))), options = list(scrollX = TRUE, pageLength = 10, dom = 't')))}, server = FALSE)
-  output$demotable_pheno <- DT::renderDT({return(DT::datatable(demotable_pheno, rownames = FALSE, class = "compact stripe", caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Example phenotype table. ", "</b>","<em>","For the QTL data upload the matrix should contain separate columns containing (1) rsIDs, (2) gene names, (3) SNP location, (4) SNP chromosome, (5) a measure of significance and (6) a proxy or grouping column.","</em>"))), options = list(scrollX = TRUE, pageLength = 10, dom = 't')))}, server = FALSE)
+
+
+  # GWAS catalog tables ----
   output$gwas_catalog <- DT::renderDT({return(DT::datatable(gwas_catalog %>% select(-reported_trait, -study_id) %>% group_by(pubmed_id) %>% distinct(), rownames = FALSE, class = "compact stripe", filter = "top", selection = "single", options = list(dom = 'ltpr', pageLength = 15, lengthChange = FALSE), caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: GWAS Catalog published studies. ", "</b>","<em>","To download any of the studies from the table first click on the row of the study of interest (1) and click the download button below the table (2).","</em>")))))}, server = FALSE)
   output$gwas_catalog_temp <- DT::renderDT({return(DT::datatable(
     

@@ -85,13 +85,14 @@ ui <- dashboardPage(
       tabItem(tabName = "QTLWorkflow", 
               
               fluidRow(column(6, fluidRow(box(title = "Upload SNPs associated to a protein/transcript", status = "primary", solidHeader = FALSE, width = 12,
+                                       HTML(paste0('<p align="justify">', "Please start by preparing pQTL/eQTL data files as described on the <code><b>Welcome page</b></code>. pQTL/eQTL data files require the columns with information related to the SNP, the affected protein/transcript and a measure of the association.", "<p>")), 
                                        uiOutput("qtl_file_ui"), 
                                        uiOutput("qtl_filtertype_ui"),
                                        uiOutput("qtl_quanttype_ui"),
                                        uiOutput("qtl_pval_ui"),
                                        uiOutput("qtl_anno_ve_ui"),
                                        uiOutput("qtl_uploadfinish_ui")))),
-                      column(6, fluidRow(uiOutput("qtl_circos_ui"), uiOutput("qtl_snploc_ui"), uiOutput("qtl_proxydonut_ui"), uiOutput("qtl_tables_ui"))) )),
+                      column(6, fluidRow(uiOutput("qtl_circos_ui"), uiOutput("qtl_proxydonut_ui"), uiOutput("qtl_tables_ui"))) )),
       
       # Tabitem PhenoWorkflow ----
       tabItem(tabName = "PhenoWorkflow", 
@@ -99,9 +100,10 @@ ui <- dashboardPage(
               fluidRow(box(title = "GWAS Catalog publicly available datasets", status = "primary", solidHeader = FALSE, width = 12, collapsible = TRUE, collapsed = TRUE,
                            DT::DTOutput("gwas_catalog"), br(), br(), DT::DTOutput("gwas_catalog_temp"), fluidRow(column(width = 4, actionButton("generate_gwascatalog","Retrieve and generate GWAS table"), downloadButton("download_gwascatalog","Download generated table")), column(width = 8, checkboxInput("tick_gwascatalog", label = "Use P-value description column as trait?", value = FALSE)) )),
 
-                column(6, fluidRow(box(title = "Trait annotation (optional)", status = "primary", solidHeader = FALSE, width = 12, collapsible = TRUE, collapsed = TRUE,
-                                       "Use this tab to annotate traits", uiOutput("pheno_file_anno_ui"), downloadButton("download_pheno_anno_metabolite","Annotate metabolites")),
+                column(6, fluidRow(#box(title = "Trait annotation (optional)", status = "primary", solidHeader = FALSE, width = 12, collapsible = TRUE, collapsed = TRUE,
+                                   #"Use this tab to annotate traits", uiOutput("pheno_file_anno_ui"), downloadButton("download_pheno_anno_metabolite","Annotate metabolites")),
                                    box(title = "Upload SNPs associated to a phenotype or molecular trait", status = "primary", solidHeader = FALSE, width = 12,
+                                       HTML(paste0('<p align="justify">', "Please start by preparing molQTL/GWAS data files as described on the <code><b>Welcome page</b></code>. The GWAS/molQTL format is similar to the pQTL/eQTL files, but only needs the following 6 columns: rsID, phenotype, SNP location, SNP chromosome, p-value and grouping.", "<p>")), 
                                        uiOutput("pheno_file_ui"), 
                                        uiOutput("pheno_filtertype_ui"),
                                        uiOutput("pheno_quanttype_ui"),
