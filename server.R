@@ -113,7 +113,6 @@ server <- function(input, output, session) {
     
     forout_reactive$protdf <- df
     
-    
     # pQTL data
     df <- read.csv(unz("./data/parker.zip", "pQTL_1e-4.csv"))
     
@@ -131,7 +130,6 @@ server <- function(input, output, session) {
       forout_reactive$qtldf <- df
       
     }
-    
     
     # molQTL data
     df <- read.csv(unz("./data/parker.zip", "lQTL.csv"))
@@ -151,7 +149,31 @@ server <- function(input, output, session) {
       
     }
     
-    sendSweetAlert(session = session, title = "Demo files loaded", text = "Proteomic, pQTL and molQTL datasets have been loaded. Please proceed to process the loaded data, but ignore the fileuploaders.", type = "success")
+    # haplotype data
+    df <- read.csv(unz("./data/parker.zip", "haplotype_cumulative_mm10.csv"))
+    
+    #Detect whether column 10 (LD block) contains information
+    if(ncol(df) == 3 &  df[,2] %>% class %in% c("numeric", "double", "integer") &  df[,3] %>% class %in% c("numeric", "double", "integer")){
+      forout_reactive$haplotype_valid <- TRUE
+
+      #Remove chromosome entries that start with chr* or chromosome* 
+      df <- df %>% mutate(!! rlang::sym(colnames(df)[1]) := stringr::str_remove_all(!! rlang::sym(colnames(df)[1]), stringr::regex("chromosome_|chr_|chromosome-|chr-|chromosome |chr |chromosome|chr", ignore_case = TRUE)))
+      df[[colnames(df)[1]]] <- factor(df[[colnames(df)[1]]], levels=c(1:22,"X","Y","MT")) %>% droplevels()
+      
+      df <- df %>% mutate(LD_name = paste0("LD_Chr_", !! rlang::sym(colnames(df)[1]), "_", !! rlang::sym(colnames(df)[2]), "_", !! rlang::sym(colnames(df)[3])))
+      
+    } else {
+      forout_reactive$haplotype_valid <- FALSE
+    }
+    
+    forout_reactive$haplotypedf <- df
+    
+    print(paste0("Valid haplotype data is present?", forout_reactive$haplotype_valid))
+    
+    print(head(forout_reactive$haplotypedf))
+    
+    # Notify user that demo data has been loaded
+    sendSweetAlert(session = session, title = "Demo files loaded", text = "Proteomic, pQTL, haplotype and molQTL datasets have been loaded. Please proceed to process the loaded data, but ignore the fileuploaders.", type = "success")
     message(paste0("Action: User loaded the demo datafiles"))
     
   }, ignoreInit = TRUE)
