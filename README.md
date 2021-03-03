@@ -131,7 +131,6 @@
 
 ## <b>App status</b>
 CoffeeProt is currently in active development. The following new features will be added in the near future:
-* LD block support, to summarize QTLs in network plots
 * Custom protein/transcript annotation support, allowing users to upload their own annotations
 * New plots utilizing the correlation table share_loc and overlap_loc columns
 * Option to open (bait)networks in new browser tabs

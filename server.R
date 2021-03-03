@@ -1113,6 +1113,7 @@ server <- function(input, output, session) {
       tagList(sliderInput("param_qtlprot_qval", "q-value cut-off (-log10 scale)", min = -maxpval, max = 0, value = 0, step = 1),
               sliderInput(inputId = "param_qtlprot_cor", "Correlation cut-off", min = -1, max = 1, value = 0.5, step = 0.01),
               selectInput("protqtlplot_chrselect", "Select Chromosome", (c("All Chromosomes", forout_reactive$table_qtl_processed %>% arrange(!! rlang::sym(forout_reactive$qtlcolnames[3])) %>% select(!! rlang::sym(forout_reactive$qtlcolnames[3])) %>% unique %>% unlist %>% as.vector())), selected = "All Chromosomes", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL),
+              selectInput("select_organelle_protqtl", "Select organelles to include", choices = c(forout_reactive$table_complex %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = FALSE, na.last = TRUE)), selected = c(forout_reactive$table_complex %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = TRUE, na.last = TRUE)), multiple = TRUE, selectize = TRUE, width = NULL, size = NULL),
               selectInput(inputId = "prottype", label = "Selecting protein source", choices = c('CORUM' = "corum", 'BioPlex 3.0' = "bioplex", "All proteins with QTL" = "protwqtl", "All / individual proteins" = "all"), selected = "CORUM", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL)
       
       )  
@@ -1311,12 +1312,14 @@ server <- function(input, output, session) {
       tagList(
         sliderInput("param_network_qval", "q-value cut-off (-log10 scale)", min = -maxpval, max = 0, value = 0, step = 1),
         sliderInput(inputId = "param_network_cor", "Correlation cut-off", min = -1, max = 1, value = 0.5, step = 0.01),
+        selectInput("select_organelle", "Select organelles to include", choices = c(forout_reactive$table_complex %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = FALSE, na.last = TRUE)), selected = c(forout_reactive$table_complex %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = TRUE, na.last = TRUE)), multiple = TRUE, selectize = TRUE, width = NULL, size = NULL),
         selectInput(inputId = "prottype_network", label = "Selecting protein source", choices = c('CORUM' = "corum", 'BioPlex 3.0' = "bioplex", "All proteins" = "all"), selected = "CORUM", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL)
       )
     } else {
       tagList(
         sliderInput("param_network_qval", "q-value cut-off (-log10 scale)", min = -maxpval, max = 0, value = 0, step = 1),
         sliderInput(inputId = "param_network_cor", "Correlation cut-off", min = -1, max = 1, value = 0.5, step = 0.01),
+        selectInput("select_organelle", "Select organelles to include", choices = c(forout_reactive$table_complex %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = FALSE, na.last = TRUE)), selected = c(forout_reactive$table_complex %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = TRUE, na.last = TRUE)), multiple = TRUE, selectize = TRUE, width = NULL, size = NULL),
         selectInput(inputId = "prottype_network", label = "Selecting protein source", choices = c('CORUM' = "corum", 'BioPlex 3.0' = "bioplex", "All proteins with QTL" = "protwqtl", "All proteins" = "all"), selected = "CORUM", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL)
       )
     }
@@ -1919,6 +1922,24 @@ server <- function(input, output, session) {
       nw_edge <- forout_reactive$table_complex %>% filter(cor > input$param_network_cor & qval < 10^(input$param_network_qval)) %>% filter(varID1 %in% bioplextarget | varID2 %in% bioplextarget) %>% select(varID1, varID2) %>% mutate(connection = "Protein-protein interaction", datatype = "protein")
       
     }
+    
+    # Filter nw_edge by organelles in input$select_organelle
+    if(length(input$select_organelle > 0)){
+      
+      # Take the organelle filter and replace the string "NA" with NA
+      select_organelle <- input$select_organelle
+      select_organelle[ select_organelle == "NA" ] <- NA
+      
+      # Create a list of proteins that should be retained
+      # unlist CP_loc and check whether any entry is present in select_organelle
+      # filter nw_edge by the created genelist
+      select_organelle_genes <- forout_reactive$protanno %>% select(ID, CP_loc) %>% rowwise() %>% filter(strsplit(CP_loc, ";") %>% unlist %in% select_organelle %>% any()) %>% select(ID) %>% unlist %>% unique
+      
+      nw_edge <- nw_edge %>% filter(varID1 %in% select_organelle_genes & varID2 %in% select_organelle_genes)
+      
+    }
+
+    
 
     if(nrow(nw_edge) == 0){sendSweetAlert(session = session, title = "Error, dataset contains 0 rows after filtering", text = "Please select less stringent cut-offs", type = "error")}
     validate(need(nrow(nw_edge)!=0, "There are no matches in the dataset. Try removing or relaxing one or more filters."))
@@ -2219,6 +2240,23 @@ server <- function(input, output, session) {
     bioplextarget <- db_bioplex3_4pc %>% select(SymbolA, SymbolB) %>% c(.$SymbolA, .$SymbolB) %>% unlist %>% as.vector() %>% tolower
     arc_diag <- arc_diag %>% filter(varID1 %in% bioplextarget | varID2 %in% bioplextarget)      
     } 
+    
+    
+    # add organelle filtering here based on input$select_organelle_protqtl
+    if(length(input$select_organelle_protqtl > 0)){
+      
+      # Take the organelle filter and replace the string "NA" with NA
+      select_organelle <- input$select_organelle_protqtl
+      select_organelle[ select_organelle == "NA" ] <- NA
+      
+      # Create a list of proteins that should be retained
+      # unlist CP_loc and check whether any entry is present in select_organelle
+      # filter nw_edge by the created genelist
+      select_organelle_genes <- forout_reactive$protanno %>% select(ID, CP_loc) %>% rowwise() %>% filter(strsplit(CP_loc, ";") %>% unlist %in% select_organelle %>% any()) %>% select(ID) %>% unlist %>% unique
+      
+      arc_diag <- arc_diag %>% filter(varID1 %in% select_organelle_genes & varID2 %in% select_organelle_genes)
+      
+    }
     
     
     arc_diag <- bind_rows(arc_diag %>% mutate(varIDx = varID1, varIDy = varID2) %>% select(-varID1, - varID2), arc_diag %>% mutate(varIDx = varID2, varIDy = varID1) %>% select(-varID1, - varID2))
