@@ -1274,7 +1274,7 @@ server <- function(input, output, session) {
   
   output$resultbox_nw_ui <- renderUI({
     
-    req(forout_reactive$network_links)
+    req(forout_reactive$interactive_plot_network)
     
     box(title = "Protein network plot", width = 12, forceNetworkOutput("network_plot_interactive", width = "100%", height = "70vh") %>% withSpinner(), plotOutput("network_legend") %>% withSpinner(), HTML(paste("<b>", "Figure: Interactive network plot. ", "</b>","<em>", "Network plot created using the igraph and networkD3 R packages. Edge colours indicate interaction types.", "</em>")))    
  
@@ -1457,7 +1457,7 @@ server <- function(input, output, session) {
   
   # Analysis - ui_param_network_bait ----
   output$baitselect_ui2 <- renderUI({
-    req(input$baittype, forout_reactive$table_qtl_processed, forout_reactive$table_pheno_processed)
+    req(forout_reactive$table_qtl_processed, forout_reactive$table_pheno_processed)
     
     if(forout_reactive$ld_processed == FALSE){
       
@@ -1488,7 +1488,7 @@ server <- function(input, output, session) {
     }
     
     if(input$baitnetwork_qtlsummarize != "LD") {
-      # Run the following if data should not be summarized by LD
+      # Run the following if data sHOULD NOT be summarized by LD
 
     if(input$baittype == "qtl"){
       
@@ -1505,18 +1505,22 @@ server <- function(input, output, session) {
     }
     
     } else {
-      # Run the following if data SHOULD NOT be summarized by LD
+      # Run the following if data SHOULD be summarized by LD
+      # first make a rsid / LD mapping from QTL data > Then join onto pheno, before mutating datatype > Then the rest should work as intended
+      
+      ld_table <- forout_reactive$table_qtl_processed %>% select(!! rlang::sym(forout_reactive$qtlcolnames[1]), LD_name) %>% `colnames<-`(c("varID1", "LD_name"))
       
       if(input$baittype == "qtl"){
         
         bait_qtl <- forout_reactive$table_qtl_processed %>% filter(tolower(!! rlang::sym(forout_reactive$qtlcolnames[4])) %in% tolower(input$baitselect)) %>% select(!! rlang::sym(forout_reactive$qtlcolnames[1]), !! rlang::sym(forout_reactive$qtlcolnames[4]), !! rlang::sym(forout_reactive$qtlcolnames[3]), !! rlang::sym(selection), LD_name) %>% mutate(datatype = "qtl")
         bait_list <- bait_qtl %>% select(!! rlang::sym(forout_reactive$qtlcolnames[1])) %>% unlist()
-        bait_pheno <- forout_reactive$table_pheno_processed %>% filter(!! rlang::sym(forout_reactive$phenocolnames[1]) %in% bait_list) %>% select(!! rlang::sym(forout_reactive$phenocolnames[1]), !! rlang::sym(forout_reactive$phenocolnames[2]), !! rlang::sym(forout_reactive$phenocolnames[4]), !! rlang::sym(forout_reactive$phenocolnames[6])) %>% mutate(LD_name = NA, datatype = "Phenotype")
+        
+        bait_pheno <- forout_reactive$table_pheno_processed %>% filter(!! rlang::sym(forout_reactive$phenocolnames[1]) %in% bait_list) %>% select(!! rlang::sym(forout_reactive$phenocolnames[1]), !! rlang::sym(forout_reactive$phenocolnames[2]), !! rlang::sym(forout_reactive$phenocolnames[4]), !! rlang::sym(forout_reactive$phenocolnames[6])) %>% `colnames<-`(c("varID1", "varID2", "chromosome", "edge")) %>% left_join(., ld_table) %>% mutate(datatype = "Phenotype")
         
       } else {
         
-        bait_pheno <- forout_reactive$table_pheno_processed %>% filter(!! rlang::sym(forout_reactive$phenocolnames[2]) %in% input$baitselect) %>% select(!! rlang::sym(forout_reactive$phenocolnames[1]), !! rlang::sym(forout_reactive$phenocolnames[2]), !! rlang::sym(forout_reactive$phenocolnames[4])) %>% mutate(edge = "Phenotype", LD_name = NA, datatype = "Phenotype")
-        bait_list <- bait_pheno %>% select(!! rlang::sym(forout_reactive$phenocolnames[1])) %>% unlist()
+        bait_pheno <- forout_reactive$table_pheno_processed %>% filter(!! rlang::sym(forout_reactive$phenocolnames[2]) %in% input$baitselect) %>% select(!! rlang::sym(forout_reactive$phenocolnames[1]), !! rlang::sym(forout_reactive$phenocolnames[2]), !! rlang::sym(forout_reactive$phenocolnames[4])) %>% mutate(edge = "Phenotype") %>% `colnames<-`(c("varID1", "varID2", "chromosome", "edge")) %>% left_join(., ld_table) %>% mutate( datatype = "Phenotype")
+        bait_list <- bait_pheno %>% select(varID1) %>% unlist()
         bait_qtl <- forout_reactive$table_qtl_processed %>% filter(!! rlang::sym(forout_reactive$qtlcolnames[1]) %in% bait_list) %>% select(!! rlang::sym(forout_reactive$qtlcolnames[1]), !! rlang::sym(forout_reactive$qtlcolnames[4]), !! rlang::sym(forout_reactive$qtlcolnames[3]), !! rlang::sym(selection), LD_name) %>% mutate(datatype = "qtl")
         
       }
@@ -2017,9 +2021,13 @@ server <- function(input, output, session) {
         nw_mqtl <- forout_reactive$table_pheno_processed %>% filter(tolower(!! rlang::sym(forout_reactive$phenocolnames[1])) %in% (c(nw_pqtl$varID1, nw_pqtl$varID2) %>% unique)) %>% select(!! rlang::sym(forout_reactive$phenocolnames[1]), !! rlang::sym(forout_reactive$phenocolnames[2]), !! rlang::sym(forout_reactive$phenocolnames[6])) %>% `colnames<-`(c("varID1", "varID2", "connection")) %>% mutate(datatype = "Phenotype", varID1 = tolower(varID1))
         nw_qtl <- bind_rows(nw_pqtl, nw_mqtl)
       } else if(input$network_qtlsummarize == "LD"){
-        # Use the same code as the "individual SNPs" but replace rsIDs with LD names where possible  
+        # Use the same code as the "individual SNPs" but replace rsIDs with LD names where possible
+        # Copy the snp-ld mapping from nw_pqtl and join this to nw_mqtl, then overwrite rsIDs with LD_block names
         nw_pqtl <- forout_reactive$table_qtl_processed %>% filter(tolower(!! rlang::sym(forout_reactive$qtlcolnames[4])) %in% (c(nw_edge$varID1, nw_edge$varID2) %>% unique)) %>% select(!! rlang::sym(forout_reactive$qtlcolnames[1]), !! rlang::sym(forout_reactive$qtlcolnames[4]), !! rlang::sym(selection), LD_name) %>% `colnames<-`(c("varID1", "varID2", "connection", "LD_name")) %>% mutate(varID1 = case_when(is.na(LD_name) ~ as.character(varID1), TRUE ~ LD_name)) %>% select(-LD_name) %>% mutate(datatype = "SNP", varID1 = tolower(varID1), varID2 = tolower(varID2))
-        nw_mqtl <- forout_reactive$table_pheno_processed %>% filter(tolower(!! rlang::sym(forout_reactive$phenocolnames[1])) %in% (c(nw_pqtl$varID1, nw_pqtl$varID2) %>% unique)) %>% select(!! rlang::sym(forout_reactive$phenocolnames[1]), !! rlang::sym(forout_reactive$phenocolnames[2]), !! rlang::sym(forout_reactive$phenocolnames[6])) %>% `colnames<-`(c("varID1", "varID2", "connection")) %>% mutate(datatype = "Phenotype", varID1 = tolower(varID1))
+        
+        ld_table <- forout_reactive$table_qtl_processed %>% filter(tolower(!! rlang::sym(forout_reactive$qtlcolnames[4])) %in% (c(nw_edge$varID1, nw_edge$varID2) %>% unique)) %>% select(!! rlang::sym(forout_reactive$qtlcolnames[1]), !! rlang::sym(forout_reactive$qtlcolnames[4]), !! rlang::sym(selection), LD_name) %>% `colnames<-`(c("varID1", "varID2", "connection", "LD_name")) %>% select(varID1, LD_name)
+        
+        nw_mqtl <- forout_reactive$table_pheno_processed %>% filter(tolower(!! rlang::sym(forout_reactive$phenocolnames[1])) %in% (c(nw_pqtl$varID1, nw_pqtl$varID2) %>% unique)) %>% select(!! rlang::sym(forout_reactive$phenocolnames[1]), !! rlang::sym(forout_reactive$phenocolnames[2]), !! rlang::sym(forout_reactive$phenocolnames[6])) %>% `colnames<-`(c("varID1", "varID2", "connection")) %>% mutate(datatype = "Phenotype", varID1 = tolower(varID1)) %>% left_join(., ld_table) %>% mutate(varID1 = case_when(is.na(LD_name) ~ as.character(varID1), TRUE ~ LD_name)) %>% select(-LD_name)
         nw_qtl <- bind_rows(nw_pqtl, nw_mqtl)
         
       } else {
@@ -2036,38 +2044,56 @@ server <- function(input, output, session) {
       nw_vertices <- c(nw_edge$varID1, nw_edge$varID2) %>% as.data.frame() %>% `colnames<-`(c("var")) %>% group_by(var) %>% summarize(n=n()) %>% mutate(connection = "Protein-protein interaction") %>% mutate(nodetype = case_when(var %in% db_dgidb$drug_name == TRUE ~ "Drug", TRUE ~ "Protein"))
       }
  
-    if(nrow(nw_vertices) > 2000){
-      sendSweetAlert(session = session, title = "Error, too many network nodes (>2000)", text = "Please select a stricter correlation cut-off", type = "error")
-    } else {     
+    
+    # First check the number of connections in the data
+    # If there are more than 10,000 > refuse plotting, filter data again
+    # If > 2000 and < 10,000  > Refuse rendering, but allow plot download
+    # If < 2000   > Render and download available
+    if(nrow(nw_vertices) > 10000){
+      sendSweetAlert(session = session, title = "Error, too many network nodes to create the plot (>10,000)", text = "Please select a stricter correlation cut-off", type = "error")
+    } else {
       
       F2 <- colorRampPalette(c("#FFAE42", "#094183"), bias = nrow(nw_edge), space = "rgb", interpolate = "linear")
       colCodes <- F2(length(unique(nw_edge$connection)))
       nw_edge <- nw_edge %>% mutate(edgecol = sapply(nw_edge$connection, function(x) colCodes[which(sort(unique(nw_edge$connection)) == x)])) %>% group_by(varID1, varID2) %>% distinct() %>% ungroup()
     
-    
-    
     ###Making the interactive plot
     nodes <- nw_vertices %>% mutate(numid = 0:(nrow(nw_vertices)-1))
     links <- nw_edge %>% left_join(., nodes %>% select(var, numid) %>% `colnames<-`(c("varID1", "source"))) %>% left_join(., nodes %>% select(var, numid) %>% `colnames<-`(c("varID2", "target"))) %>% select(source, target, varID1, varID2, everything())
-    
     
     if(input$nodelabelsnw == "None"){nodes <- nodes %>% mutate(var = NA)}
     if(input$nodelabelsnw == "No SNP labels"){nodes <- nodes %>% mutate(var = case_when(nodetype %in% c("SNP") ~ "", TRUE ~ nodes$var))}
     
 
+    # if more than 2000, don't render, but allow download
+    if(nrow(nw_vertices) > 2000){
+      sendSweetAlert(session = session, title = "Too many network nodes to render the plot (>2000), but download available", text = "Please select a stricter correlation cut-off, or directly download the network", type = "info")
+      forout_reactive$interactive_plot_network_dl <-  forceNetwork(Links = links, Nodes = nodes, Source = 'source', Target = 'target', NodeID = 'var', Nodesize = 'n', Group = 'nodetype', charge = input$nodechargenw, linkColour = links$edgecol, opacity = 0.8, fontSize = 12, zoom = TRUE, opacityNoHover = 0.4, legend = TRUE)
     
+      forout_reactive$network_links <- links
+      updateProgressBar(session = session, id = "pb7", value = 100)
+      
+      } else {
+        
+      forout_reactive$interactive_plot_network_dl <-  forceNetwork(Links = links, Nodes = nodes, Source = 'source', Target = 'target', NodeID = 'var', Nodesize = 'n', Group = 'nodetype', charge = input$nodechargenw, linkColour = links$edgecol, opacity = 0.8, fontSize = 12, zoom = TRUE, opacityNoHover = 0.4, legend = TRUE)
       forout_reactive$interactive_plot_network <-  forceNetwork(Links = links, Nodes = nodes, Source = 'source', Target = 'target', NodeID = 'var', Nodesize = 'n', Group = 'nodetype', charge = input$nodechargenw, linkColour = links$edgecol, opacity = 0.8, fontSize = 12, zoom = TRUE, opacityNoHover = 0.4, legend = TRUE)
       
       forout_reactive$network_links <- links
+      updateProgressBar(session = session, id = "pb7", value = 100)
+      sendSweetAlert(session = session, title = "Network rendered", text = "", type = "success")
+      
+      
+      }
     
-    updateProgressBar(session = session, id = "pb7", value = 100)
     }
+      
+    
     
   })
   
   # Analysis - network_plot_interactive ----
   output$network_legend <- renderPlot( {
-    req(forout_reactive$network_links)
+    req(forout_reactive$network_links, forout_reactive$interactive_plot_network)
     
     linklegend <- forout_reactive$network_links %>% select(connection, edgecol) %>% distinct()
     legend <- ggplot(linklegend, aes(x = connection, y = 1, col = edgecol)) + geom_line(size = 2.5) + theme_bw() + scale_color_manual(name = "Link type", values = linklegend$edgecol %>% as.character(), labels = linklegend$connection) +theme(legend.position="bottom", legend.text=element_text(size=15), legend.title = element_text(size=15))
@@ -2449,7 +2475,7 @@ server <- function(input, output, session) {
   output$download_network <- downloadHandler(
     filename = function() { paste("network_", input$network_complexselect, ".html", sep = "") },
     content = function(file) {
-      saveNetwork(forout_reactive$interactive_plot_network, file, selfcontained = TRUE)
+      saveNetwork(forout_reactive$interactive_plot_network_dl, file, selfcontained = TRUE)
     })
   
   # Download network handler ----

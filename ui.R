@@ -47,6 +47,10 @@ ui <- dashboardPage(
     
     shinyjs::useShinyjs(),
     
+    # The following line loads the script to disable all buttons when shiny is busy (https://stackoverflow.com/questions/48851729/how-can-i-disable-all-action-buttons-while-shiny-is-busy-and-loading-text-is-dis)
+    # And this code: (https://stackoverflow.com/questions/52313596/disable-elements-when-shiny-is-busy)
+    includeScript("script.js"),
+    
     tabItems(
       
       # The tabs below contains the UI layout for the app
@@ -57,7 +61,7 @@ ui <- dashboardPage(
               fluidRow(
                 column(6, fluidRow(div(class = "col-sm-12", div(class = "box box-primary", style = "padding-right: 5%; padding-left: 5%; font-size:110%", NULL, div(class = "box-body", shiny::includeMarkdown("README.md")))),
                 )),
-                column(6, fluidRow(box(title = "Demo datasets", status = "primary", solidHeader = FALSE, width = 12, actionButton(inputId = "demobutton_files", label = "Load demo data (Parker): Proteomics, pQTL, molQTL", icon = icon("play-circle"), style="color: #fff; background-color: #337ab7; border-color: #2e6da4"), br(), br(), "OR", br(), br(), "Download demo data", selectizeInput("demoset", label = NULL, choices = list("" ,"Parker HMDP" = "parker"), selected = "parker", options = list(placeholder = 'Select dataset')) ,htmlOutput("demoref"), uiOutput("dl_demoset_ui"))),
+                column(6, fluidRow(box(title = "Demo datasets", status = "primary", solidHeader = FALSE, width = 12, actionButton(inputId = "demobutton_files", label = "Load demo data (Parker): Proteomics, pQTL, haplotype, molQTL", icon = icon("play-circle"), style="color: #fff; background-color: #337ab7; border-color: #2e6da4"), br(), br(), "OR", br(), br(), "Download demo data", selectizeInput("demoset", label = NULL, choices = list("" ,"Parker HMDP" = "parker"), selected = "parker", options = list(placeholder = 'Select dataset')) ,htmlOutput("demoref"), uiOutput("dl_demoset_ui"))),
                        fluidRow(tabBox(title = "Demo tables", width = 12,
                                        tabPanel("Protein", DT::DTOutput("demotable_protein")),
                                        tabPanel("pQTL", DT::DTOutput("demotable_qtl")),
