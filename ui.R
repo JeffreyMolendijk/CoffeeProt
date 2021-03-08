@@ -24,16 +24,17 @@ ui <- dashboardPage(
                          menuSubItem("SNP-Protein", tabName = "Analysis_ProteinQTL"),
                          menuSubItem("Network", tabName = "Analysis_Network"),
                          menuSubItem("Bait Network", tabName = "Analysis_Network_Bait")),
-                menuItem("Plot & Table export", tabName = "Report", icon = icon("file-download"))), br(), br(), br(),
-    h5("Progress"),
-   progressBar(id = "pb2", title = "Processing: Protein/transcript", value = 0, status = "success", size = "xs"),
-   progressBar(id = "pb3", title = "Processing: pQTL/eQTL", value = 0, status = "success", size = "xs"),
-   progressBar(id = "pb4", title = "Processing: molQTL", value = 0, status = "success", size = "xs"),
-   progressBar(id = "pb5", title = "Analysis: Correlation summary", value = 0, status = "success", size = "xs"),
-   progressBar(id = "pb6", title = "Analysis: Database", value = 0, status = "success", size = "xs"),
-   progressBar(id = "pb9", title = "Analysis: SNP-Protein", value = 0, status = "success", size = "xs"),
-   progressBar(id = "pb7", title = "Analysis: Network", value = 0, status = "success", size = "xs"),
-   progressBar(id = "pb8", title = "Analysis: Baitnetwork", value = 0, status = "success", size = "xs")),
+                menuItem("Plot & Table export", tabName = "Report", icon = icon("file-download"))), br(), br(), br()
+   #h5("Progress"),
+   #progressBar(id = "pb2", title = "Processing: Protein/transcript", value = 0, status = "success", size = "xs"),
+   #progressBar(id = "pb3", title = "Processing: pQTL/eQTL", value = 0, status = "success", size = "xs"),
+   #progressBar(id = "pb4", title = "Processing: molQTL", value = 0, status = "success", size = "xs"),
+   #progressBar(id = "pb5", title = "Analysis: Correlation summary", value = 0, status = "success", size = "xs"),
+   #progressBar(id = "pb6", title = "Analysis: Database", value = 0, status = "success", size = "xs"),
+   #progressBar(id = "pb9", title = "Analysis: SNP-Protein", value = 0, status = "success", size = "xs"),
+   #progressBar(id = "pb7", title = "Analysis: Network", value = 0, status = "success", size = "xs"),
+   #progressBar(id = "pb8", title = "Analysis: Baitnetwork", value = 0, status = "success", size = "xs")
+   ),
     
   # Main panel for analysis inputs and visualizations ----
   dashboardBody(
@@ -65,7 +66,8 @@ ui <- dashboardPage(
                        fluidRow(tabBox(title = "Demo tables", width = 12,
                                        tabPanel("Protein", DT::DTOutput("demotable_protein")),
                                        tabPanel("pQTL", DT::DTOutput("demotable_qtl")),
-                                       tabPanel("molQTL / GWAS", DT::DTOutput("demotable_pheno")) )),
+                                       tabPanel("molQTL / GWAS", DT::DTOutput("demotable_pheno")),
+                                       tabPanel("Haplotype", DT::DTOutput("demotable_ld")) )),
                        fluidRow(tabBox(title = "Example plots", width = 12,
                                        tabPanel("correlation", br(), img(src = "images/plot_summary_histogram_cor.png", height = "80%", width = "80%"), HTML(paste("<p style='text-align:justify'>","<b>","Figure: Correlation coefficient histogram. ", "</b>","<em>","Correlation analyses can be performed using protein/transcript data to identify correlated protein or transcript pairs. This plot indicates the number of pairs that would be considered to be 'correlated' at the user-selected correlation coefficient cut-off of 0.5. These plots are useful to judge appropriate cut-offs for other analyses that use the same parameters, such as the network analyses.","</em>","</p>"))),
                                        tabPanel("database", br(), img(src = "images/plot_database_inCORUM.png", height = "80%", width = "80%"), HTML(paste("<p style='text-align:justify'>","<b>","Figure: Correlation database enrichment plot. ", "</b>","<em>","The protein or transcript pairs which are considered to be correlated, based on the user-defined cutoffs (correlation coefficient and 1-value), can be further analyzed using enrichment plots. In this example, the fraction of correlated (true) and non-correlated pairs (false) found in the CORUM protein-protein interaction database are shown. As expected, the correlation pairs detected using CoffeeProt are in agreement with the database, leading to a fold change enrichment of <50. Please note that the relatively low percentages on the y-axis are due to the large number of potential correlation pairs (several million) compared to the protein pairs in the database (~30.000).","</em>","</p>"))),
@@ -79,17 +81,17 @@ ui <- dashboardPage(
       tabItem(tabName = "ProtWorkflow", 
               
               fluidRow(column(6, fluidRow(box(title = "Upload protein/transcript data", status = "primary", solidHeader = FALSE, width = 12,
-                                        HTML(paste0('<p align="justify">', "Please start by preparing protein/transcript data files as described on the <code><b>Welcome page</b></code>. Your dataset should contain identifiers in the first column, which could either be gene names, UniProt IDs or ENSEMBL IDs. All other columns should contain numeric data, corresponding to the protein/transcript abundance per sample. CoffeeProt will convert all IDs to gene names after the data is uploaded.", "<p>")), 
+                                        HTML(paste0('<p align="justify">', "Please start by preparing protein/transcript data files as described on the <code><b>Welcome page</b></code>. Your dataset should contain identifiers in the first column, which could either be gene names, UniProt IDs or ENSEMBL IDs. All other columns should contain numeric data, corresponding to the protein/transcript abundance per sample. CoffeeProt will convert all IDs to gene names after the data is uploaded.", "<p>")), br(),
                                         uiOutput("protfile_ui"),
                                         uiOutput("prot_select_ui")),
                                         uiOutput("correlation_ui"))),
-                      column(6, (uiOutput("prot_annogauge_ui")), fluidRow(uiOutput("cortable_ui"))))),
+                      column(6, fluidRow(uiOutput("prot_annogauge_ui")), fluidRow(uiOutput("cortable_ui"))))),
       
       # Tabitem QTLWorkflow ----
       tabItem(tabName = "QTLWorkflow", 
               
               fluidRow(column(6, fluidRow(box(title = "Upload SNPs associated to a protein/transcript", status = "primary", solidHeader = FALSE, width = 12,
-                                       HTML(paste0('<p align="justify">', "Please start by preparing pQTL/eQTL data files as described on the <code><b>Welcome page</b></code>. pQTL/eQTL data files require the columns with information related to the SNP, the affected protein/transcript and a measure of the association.", "<p>")), 
+                                       HTML(paste0('<p align="justify">', "Please start by preparing pQTL/eQTL data files as described on the <code><b>Welcome page</b></code>. pQTL/eQTL data files require the columns with information related to the SNP, the affected protein/transcript and a measure of the association. An optional haplotype / LD block file can be uploaded to annotate SNPs that are in linkage disequilibrium, which can be used in the network plots to summarize many SNP nodes into fewer LD nodes. Human or mouse SNPs (<500.000) can be annotated with variant effects and variant impacts. ", "<p>")), br(),
                                        uiOutput("qtl_file_ui"), 
                                        uiOutput("qtl_filtertype_ui"),
                                        uiOutput("qtl_quanttype_ui"),
@@ -107,7 +109,7 @@ ui <- dashboardPage(
                 column(6, fluidRow(#box(title = "Trait annotation (optional)", status = "primary", solidHeader = FALSE, width = 12, collapsible = TRUE, collapsed = TRUE,
                                    #"Use this tab to annotate traits", uiOutput("pheno_file_anno_ui"), downloadButton("download_pheno_anno_metabolite","Annotate metabolites")),
                                    box(title = "Upload SNPs associated to a phenotype or molecular trait", status = "primary", solidHeader = FALSE, width = 12,
-                                       HTML(paste0('<p align="justify">', "Please start by preparing molQTL/GWAS data files as described on the <code><b>Welcome page</b></code>. The GWAS/molQTL format is similar to the pQTL/eQTL files, but only needs the following 6 columns: rsID, phenotype, SNP location, SNP chromosome, p-value and grouping.", "<p>")), 
+                                       HTML(paste0('<p align="justify">', "Please start by preparing molQTL/GWAS data files as described on the <code><b>Welcome page</b></code>. The GWAS/molQTL format is similar to the pQTL/eQTL files, but only needs the following 6 columns: rsID, phenotype, SNP location, SNP chromosome, p-value and grouping.", "<p>")), br(),
                                        uiOutput("pheno_file_ui"), 
                                        uiOutput("pheno_filtertype_ui"),
                                        uiOutput("pheno_quanttype_ui"),
@@ -153,5 +155,5 @@ ui <- dashboardPage(
       # Tabitem Report ----
       tabItem(tabName = "Report",
               fluidRow(box(title = "Export all plots & tables", status = "primary", width = 6, HTML("<p align='justify'>Use this tab to download <b>all plots </b> or <b>all tables</b> compressed in a Zip folder. The plots are exported at the default square ratio and in .svg file format. To export plots in different dimensions or file types, use the individual plot export option.</p>"), downloadButton("download_plot_zip", "Download all plots (Zip)"), downloadButton("download_table_zip", "Download all tables (Zip)"))),
-              fluidRow(box(title = "Export individual plots", status = "primary", width = 6,  uiOutput("downloadplotselect_ui"), selectInput("downloadplotfiletype", "Select filetype", choices = c("svg", "pdf", "png", "eps", "tiff", "bmp"), selected = "svg"), pickerInput("plotdims", "Select plot dimensions", choices = list(Size = c("Large" = 10, "Medium" = 8, "Small" = 5, "Extra small" = 3), Shape = c("Wide"=1.6, "Square"=1)), selected = list(8, 1.6), multiple = T, options = list('max-options-group' = 1)),downloadButton("download_plot", "Download plot"))))
+              fluidRow(box(title = "Export individual plots", status = "primary", width = 6,  uiOutput("downloadplotselect_ui"), selectInput("downloadplotfiletype", "Select filetype", choices = c("svg", "pdf", "png", "eps", "tiff", "bmp"), selected = "svg"), pickerInput("plotdims", "Select plot dimensions", choices = list(Size = c("Large" = 10, "Medium" = 8, "Small" = 5, "Extra small" = 3), Shape = c("Wide"=1.6, "Square"=1)), selected = list(8, 1.6), multiple = T, options = list('max-options-group' = 1)), downloadButton("download_plot", "Download plot"))))
 )))

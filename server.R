@@ -54,6 +54,46 @@ server <- function(input, output, session) {
       br())})
   
   
+  
+  # disable the downdload button on page load
+  shinyjs::disable("download_plot")
+  shinyjs::disable("download_plot_zip")
+  shinyjs::disable("download_table_zip")
+
+  # Enable plot download if plots are present
+  observe({
+    if(length((c(names(forout_reactive) %>% grep("^plot_", ., value = TRUE) %>% sort() ))) > 0) {
+      Sys.sleep(1)
+      # enable the download button
+      shinyjs::enable("download_plot")
+      shinyjs::enable("download_plot_zip")
+      
+    }
+  })
+  
+  # Enable table download if tables are present
+  observe({
+    if(length((c(names(forout_reactive) %>% grep("^table_", ., value = TRUE) %>% sort() ))) > 0) {
+      Sys.sleep(1)
+      # enable the download button
+      shinyjs::enable("download_table_zip")
+
+    }
+  })
+  
+  # Disable download_circos, but enable if circos has been processed
+  observe({
+    if(length((c(names(forout_reactive) %>% grep("^cp_circos$", ., value = TRUE) %>% sort() ))) == 0) {
+      Sys.sleep(1)
+      # enable the download button
+      shinyjs::disable("download_circos")
+      
+    } else if(length((c(names(forout_reactive) %>% grep("^cp_circos$", ., value = TRUE) %>% sort() ))) > 0) {
+      shinyjs::enable("download_circos")
+      
+    }
+  })
+  
 
 ###################################################################################################################################################
 #### Demo data tables, downloader and example data loading
@@ -62,8 +102,9 @@ server <- function(input, output, session) {
   # Demo tables ----
   # Rendered tables displayed on the Welcome page
   output$demotable_protein <- DT::renderDT({return(DT::datatable(demotable_p, rownames = FALSE, class = "compact stripe", caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Example proteomics table. ", "</b>","<em>","Protein data must be uploaded as a matrix in which the first column contains protein identifiers and the remaining columns contain quantitative measurements. The accepted protein identifiers are gene names, Uniprot identifiers and ENSEMBL gene identifiers.","</em>"))), options = list(scrollX = TRUE, pageLength = 10, dom = 't')))}, server = FALSE)
-  output$demotable_qtl <- DT::renderDT({return(DT::datatable(demotable_q, rownames = FALSE, class = "compact stripe", caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Example pQTL table. ", "</b>","<em>","For the QTL data upload the matrix should contain separate columns containing (1) rsIDs, (2) SNP location, (3) SNP chromosome, (4) gene names, (5) gene start location, (6) gene end location, (7) gene chromosome, (8) a measure of significance and (9) a proxy or grouping column.","</em>"))), options = list(scrollX = TRUE, pageLength = 10, dom = 't')))}, server = FALSE)
-  output$demotable_pheno <- DT::renderDT({return(DT::datatable(demotable_pheno, rownames = FALSE, class = "compact stripe", caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Example phenotype table. ", "</b>","<em>","For the QTL data upload the matrix should contain separate columns containing (1) rsIDs, (2) gene names, (3) SNP location, (4) SNP chromosome, (5) a measure of significance and (6) a proxy or grouping column.","</em>"))), options = list(scrollX = TRUE, pageLength = 10, dom = 't')))}, server = FALSE)
+  output$demotable_qtl <- DT::renderDT({return(DT::datatable(demotable_q, rownames = FALSE, class = "compact stripe", caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Example pQTL table. ", "</b>","<em>","For the QTL data the uploaded matrix should contain separate columns containing (1) rsIDs, (2) SNP location, (3) SNP chromosome, (4) gene names, (5) gene start location, (6) gene end location, (7) gene chromosome, (8) a measure of significance and (9) a proxy or grouping column.","</em>"))), options = list(scrollX = TRUE, pageLength = 10, dom = 't')))}, server = FALSE)
+  output$demotable_pheno <- DT::renderDT({return(DT::datatable(demotable_pheno, rownames = FALSE, class = "compact stripe", caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Example phenotype table. ", "</b>","<em>","For the QTL data the uploaded matrix should contain separate columns containing (1) rsIDs, (2) gene names, (3) SNP location, (4) SNP chromosome, (5) a measure of significance and (6) a proxy or grouping column.","</em>"))), options = list(scrollX = TRUE, pageLength = 10, dom = 't')))}, server = FALSE)
+  output$demotable_ld <- DT::renderDT({return(DT::datatable(demotable_ld, rownames = FALSE, class = "compact stripe", caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Haplotype / LD block table. ", "</b>","<em>","For the haplotype data the uploaded matrix should contain separate columns containing (1) LD block chromosome, (2) LD block start position and (3) LD block end position. The start and end position format should match the format used in the pQTL/eQTL data","</em>"))), options = list(scrollX = TRUE, pageLength = 10, dom = 't')))}, server = FALSE)
   
   
   # Demoset text ----
@@ -189,6 +230,7 @@ server <- function(input, output, session) {
   output$correlation_ui <- renderUI({
     req(forout_reactive$protanno)
     box(title = "Correlation Parameters", status = "primary", solidHeader = FALSE, width = 12, 
+        HTML(paste0('<p align="justify">', "Please select a correlation and p-value adjustment method, followed by clicking the 'Correlate!' button. After performing the protein-protein or transcript-transcript correlation, CoffeeProt will check the presence of all correlated pairs in the CORUM, BioPlex and STRING databases. Next, all protein/transcript localizations are added to the correlation data to determine whether the correlated proteins/transcripts are known to be located in the same organelle. This process is expected to take around 2-3 minutes.", "<p>")), br(),
         selectInput("cor_type", label = ("Correlation / Co-regulation method"), choices = list("Biweight midcorrelation" = "bicor", "Pearson's correlation" = "pearson", "Spearman's correlation" = "spearman"), selected = 1),
         selectInput("fdr_type", label = ("Adjusted p-value method"), choices = list("Benjamini-Hochberg" = "BH", "Bonferroni" = "bonferroni"), selected = 1),
         actionButton(inputId = "correlate", label = "Correlate!"))  })
@@ -197,13 +239,21 @@ server <- function(input, output, session) {
   # Protein data - input - renderUI_correlation_sensitivity ----
   output$sensitivity_ui <- renderUI({
     req(forout_reactive$table_complex)
-    box(title = "Correlation sensitivity analysis", status = "primary", solidHeader = FALSE, width = 12, 
-        HTML("A sensitivity analysis will indicate which p-value and correlation coefficient cut-offs affect the percentage of protein-protein pairs found in the reference databases. Clicking the 'Perform sensitivity analysis!' will perform the analysis on many combinations of correlation coefficients and q-values. <b>This analysis takes about 2-3 minutes</b>."),
-        plotOutput("sensitivityplot"),
-        HTML(paste("<b>", "Figure: Correlation sensitivity analysis. ", "</b>",
-                   "<em>", "Combinations of correlation coefficients and q-values input parameters are tested to determine the effect on the protein-protein pair enrichment in the database analyses. 
+    
+    if(is.null(forout_reactive$plot_sensitivity) == TRUE){
+      box(title = "Correlation sensitivity analysis", status = "primary", solidHeader = FALSE, width = 12, 
+          HTML("A sensitivity analysis will indicate which p-value and correlation coefficient cut-offs affect the percentage of protein-protein pairs found in the reference databases. Clicking the 'Perform sensitivity analysis!' will perform the analysis on many combinations of correlation coefficients and q-values. <b>This analysis takes about 2-3 minutes</b>."), br(),
+          actionButton(inputId = "sensitivity_analysis", label = "Perform sensitivity analysis!"))
+    } else {
+      box(title = "Correlation sensitivity analysis", status = "primary", solidHeader = FALSE, width = 12, 
+          HTML("A sensitivity analysis will indicate which p-value and correlation coefficient cut-offs affect the percentage of protein-protein pairs found in the reference databases. Clicking the 'Perform sensitivity analysis!' will perform the analysis on many combinations of correlation coefficients and q-values. <b>This analysis takes about 2-3 minutes</b>."), br(),
+          plotOutput("sensitivityplot"),
+          HTML(paste("<b>", "Figure: Correlation sensitivity analysis. ", "</b>",
+                     "<em>", "Combinations of correlation coefficients and q-values input parameters are tested to determine the effect on the protein-protein pair enrichment in the database analyses. 
         The colours and numbers indicate the percentage of protein pairs found in that database. Plots are made for 3 databases, for the 'correlated' and 'non-correlated' pairs.", "</em>")), br(),
-        actionButton(inputId = "sensitivity_analysis", label = "Perform sensitivity analysis!"))  })
+          actionButton(inputId = "sensitivity_analysis", label = "Perform sensitivity analysis!"))
+    }
+  })
   
   
   # Protein data - input - renderUI_protfile ----
@@ -223,7 +273,7 @@ server <- function(input, output, session) {
     tagList(
       tags$div(title="Proteins with more missing values than the selected percentage are removed",
       sliderInput("protNA", "Percentage missing values allowed", 0, 100, 20)),
-      actionButton(inputId = "protannotate", label = "Process Proteins!") )})
+      actionButton(inputId = "protannotate", label = "Process proteins/transcripts!") )})
   
   
   # Protein data - fileinput ----
@@ -362,7 +412,7 @@ server <- function(input, output, session) {
     } else {
       
       req(forout_reactive$protdf)
-      sendSweetAlert(session = session, title = "Commencing Correlation!", text = "Please be patient, this will just take a few minutes...", type = "info", btn_labels = NA, closeOnClickOutside = FALSE)
+      sendSweetAlert(session = session, title = "Running correlation (1/2)", text = "Please be patient, this will just take a few minutes...", type = "info", btn_labels = NA, closeOnClickOutside = FALSE)
       
       # Impute missing values prior to performing correlation analyses
       df <- imputeLCMD::impute.MinDet(forout_reactive$protfilter %>% dplyr::select(3:ncol(.))) %>% `colnames<-`(paste0("X", colnames(.))) %>% `row.names<-`(forout_reactive$protfilter$varID)
@@ -404,7 +454,7 @@ server <- function(input, output, session) {
       }
       
       # Editing cor into complex and paircount ----
-      sendSweetAlert(session = session, title = "Analyzing results", text = "Please be patient, this will just take a few minutes...", type = "info", btn_labels = NA, closeOnClickOutside = FALSE)
+      sendSweetAlert(session = session, title = "Annotating correlation results (2/2)", text = "Please be patient, this will just take a few minutes...", type = "info", btn_labels = NA, closeOnClickOutside = FALSE)
       
       
       # Join annotations onto the cor dataframe for the first and second protein per row
@@ -431,7 +481,7 @@ server <- function(input, output, session) {
       forout_reactive$table_complex <- complex
       updateProgressBar(session = session, id = "pb2", value = 100)
       
-      sendSweetAlert(session = session, title = "Correlation Success!", text = "Please proceed to the QTL workflow (optional) or Analysis tabs", type = "success")
+      sendSweetAlert(session = session, title = "Correlation Success!", text = "Please proceed to the QTL upload (optional) or Analysis tabs", type = "success")
       message("Status: Protein correlation success")  
 
     }})
@@ -440,17 +490,18 @@ server <- function(input, output, session) {
   # renderUI for annotation gauge plot ----
   output$prot_annogauge_ui <- renderUI({
     req(forout_reactive$protanno)
-    box(title = "Protein annotation summary", width = 12, plotOutput("anno_gauge") %>% withSpinner(),
-        HTML(paste("<b>", "Figure: Protein filtering and annotation summary. ", "</b>",
-                   "<em>", "(a.) Percentage of proteins filtered by user-specified missing value cut-off. 
-        (b.) Percentage of proteins annotated with Cell Atlas protein localization as determined by immunofluorescent staining.", "</em>")))
+    box(title = "", width = 12, plotOutput("anno_gauge") %>% withSpinner(),
+        HTML(paste("<b>", "Figure: Protein/transcript filtering and annotation summary. ", "</b>",
+                   "<em>", "(a.) Percentage of proteins/transcripts filtered by user-specified missing value cut-off. 
+                   (b.) Percentage of proteins/transcripts annotated with Cell Atlas protein localization as determined by immunofluorescent staining.
+                   (c.) Percentage of proteins/transcripts annotated DGIdb drug-gene interactions.", "</em>")))
   })  
   
   # renderUI for annotation tables ----
   output$cortable_ui <- renderUI({
     req(forout_reactive$table_complex)
-    tagList(tabBox(title = "Protein summary tables", width = 12,
-                   tabPanel("Protein table (preview)", DT::DTOutput("protannotable"), downloadButton("download_protannotable","Download table")),
+    tagList(tabBox(title = "", width = 12,
+                   tabPanel("Protein/transcript table (preview)", DT::DTOutput("protannotable"), downloadButton("download_protannotable","Download table")),
                    tabPanel("Correlation table (preview)", DT::DTOutput("cortable"), sliderInput("complextable_dl_filter", "Export p-value filter (-log10 scale)", min = -10, max = 0, value = 0, step = 1), downloadButton("download_complextable","Download annotated correlation table")) ) )
       })  
   
@@ -462,7 +513,7 @@ server <- function(input, output, session) {
   # QTL data - input - renderUI_qtlfile ----
   output$qtl_file_ui <- renderUI({
     tagList(
-    fileInput("qtlfile", "Choose file", multiple = FALSE, accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv",".xls",".xlsx")),
+    fileInput("qtlfile", "Choose pQTL/eQTL file", multiple = FALSE, accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv",".xls",".xlsx")),
     tags$div(title="Upload a haplotype mapping file  in .csv, .xls or .xlsx format (optional)", fileInput("haplotype", "Choose haplotype mapping file (optional)", multiple = FALSE, accept = c("text/csv","text/comma-separated-values,text/plain",".csv",".xls",".xlsx"))))})
   
   
@@ -588,7 +639,7 @@ server <- function(input, output, session) {
     
     req(forout_reactive$qtldf)
     
-    if((sapply(forout_reactive$qtldf, class)[2] %in% c("numeric", "integer", "double")) & (sapply(forout_reactive$qtldf, class)[5] %in% c("numeric", "integer", "double")) & (sapply(forout_reactive$qtldf, class)[6] %in% c("numeric", "integer", "double")) & (sapply(forout_reactive$qtldf, class)[8] %in% c("numeric", "integer", "double"))){
+    if(ncol(forout_reactive$qtldf) == 9 & (sapply(forout_reactive$qtldf, class)[2] %in% c("numeric", "integer", "double")) & (sapply(forout_reactive$qtldf, class)[5] %in% c("numeric", "integer", "double")) & (sapply(forout_reactive$qtldf, class)[6] %in% c("numeric", "integer", "double")) & (sapply(forout_reactive$qtldf, class)[8] %in% c("numeric", "integer", "double"))){
       
     sendSweetAlert(session = session, title = "Commencing Processing!", text = "Please be patient, this will just take a minute...", type = "info", btn_labels = NA, closeOnClickOutside = FALSE)
       
@@ -740,14 +791,25 @@ server <- function(input, output, session) {
       message(start - end)
       
       res <- df %>% select(!! rlang::sym(forout_reactive$qtlcolnames[1])) %>% `colnames<-`(c("rsid")) %>% left_join(., res)
-      df$CP_Variant_Effect <- res$ve %>% sub('^c\\(.', "",.) %>% sub('\"', "",.)
-      df <- left_join(df, ve_impact_mapping %>% select(SO.term, CP_Variant_Impact), by = c("CP_Variant_Effect" = "SO.term"))
+
       
+      # If no SNPs were annotated, proceed as if no annotation was performed
+      if(is.na(res$ve) %>% sum() == nrow(df)){
+        forout_reactive$table_qtl_processed <- df 
+        forout_reactive$qtl_annotated <- FALSE
+        
+        sendSweetAlert(session = session, title = "Processing completed without annotation.", text = "No human SNPs were detected in the data.", type = "success")
+      } else {
+        
+        df$CP_Variant_Effect <- res$ve %>% sub('^c\\(.', "",.) %>% sub('\"', "",.)
+        df <- left_join(df, ve_impact_mapping %>% select(SO.term, CP_Variant_Impact), by = c("CP_Variant_Effect" = "SO.term"))
+        
+        forout_reactive$table_qtl_processed <- df
+        forout_reactive$qtl_annotated <- TRUE
+        
+        sendSweetAlert(session = session, title = "Processing Success!", text = "Upload other data types or proceed to the analysis tabs", type = "success")
+      }
       
-      forout_reactive$table_qtl_processed <- df
-      forout_reactive$qtl_annotated <- TRUE
-      
-      sendSweetAlert(session = session, title = "Processing Success!", text = "Upload other data types or proceed to the analysis tabs", type = "success")
       
       
     } else if(input$qtl_anno_species == "Mus musculus" & nrow(df) < 500000){
@@ -765,14 +827,22 @@ server <- function(input, output, session) {
       message(start - end)
       
       res <- df %>% select(!! rlang::sym(forout_reactive$qtlcolnames[1])) %>% `colnames<-`(c("rsid")) %>% left_join(., res)
-      df$CP_Variant_Effect <- res$ve %>% sub('^c\\(.', "",.) %>% sub('\"', "",.)
-      df <- left_join(df, ve_impact_mapping %>% select(SO.term, CP_Variant_Impact), by = c("CP_Variant_Effect" = "SO.term"))
       
-      
-      forout_reactive$table_qtl_processed <- df
-      forout_reactive$qtl_annotated <- TRUE
-      sendSweetAlert(session = session, title = "Processing Success!", text = "Upload other data types or proceed to the analysis tabs", type = "success")
-      
+      # If no SNPs were annotated, proceed as if no annotation was performed
+      if(is.na(res$ve) %>% sum() == nrow(df)){
+        forout_reactive$table_qtl_processed <- df 
+        forout_reactive$qtl_annotated <- FALSE
+        
+        sendSweetAlert(session = session, title = "Processing completed without annotation.", text = "No mouse SNPs were detected in the data.", type = "success")
+      } else {
+        df$CP_Variant_Effect <- res$ve %>% sub('^c\\(.', "",.) %>% sub('\"', "",.)
+        df <- left_join(df, ve_impact_mapping %>% select(SO.term, CP_Variant_Impact), by = c("CP_Variant_Effect" = "SO.term"))
+        
+        forout_reactive$table_qtl_processed <- df
+        forout_reactive$qtl_annotated <- TRUE
+        
+        sendSweetAlert(session = session, title = "Processing Success!", text = "Upload other data types or proceed to the analysis tabs", type = "success")
+      }      
       
     } else {
       forout_reactive$table_qtl_processed <- df
@@ -785,7 +855,7 @@ server <- function(input, output, session) {
       
     } else {
       
-      sendSweetAlert(session = session, title = "Processing problem.", text = "Please confirm that columns 2, 5, 6, 8 are numeric.", type = "error")
+      sendSweetAlert(session = session, title = "Processing problem.", text = "Please confirm that the datafile contains 9 columns where columns 2, 5, 6 & 8 are numeric.", type = "error")
       
     }
 
@@ -900,12 +970,12 @@ server <- function(input, output, session) {
     req(forout_reactive$table_qtl_processed)
     
     if(forout_reactive$qtl_annotated == FALSE){
-      tagList(tabBox(title = "QTL summary", width = 12,
+      tagList(tabBox(title = "", width = 12,
                      tabPanel("Proxy annotation", plotOutput("qtl_proxy_donut") %>% withSpinner(), HTML(paste("<b>", "Figure: pQTL/eQTL annotation summary. ", "</b>", "<em>", "Percentage of QTLs annotated by proxy.", "</em>"))),
                      tabPanel("QTL location",  plotOutput("qtl_snploc") %>% withSpinner(), HTML(paste("<b>", "Figure: pQTL/eQTL genomic location. ", "</b>", "<em>", "The 2-dimensional density of genomic locations is shown in the main panel, where high density is shown in blue, and low density as grey. Separate density plots are produced for the SNP locations (x-axis) and gene locations (y-axis).", "</em>")))))
     } else {
       
-      tagList(tabBox(title = "QTL summary", width = 12,
+      tagList(tabBox(title = "", width = 12,
                      tabPanel("Proxy annotation", plotOutput("qtl_proxy_donut") %>% withSpinner(), HTML(paste("<b>", "Figure: pQTL/eQTL annotation summary. ", "</b>", "<em>", "Percentage of QTLs annotated by proxy.", "</em>"))),
                      tabPanel("Impact annotation", plotOutput("qtl_impact_donut") %>% withSpinner(), HTML(paste("<b>", "Figure: pQTL/eQTL annotation summary. ", "</b>", "<em>", "Percentage of QTLs annotated by variant effect impact ratings", "</em>"))),
                      tabPanel("Variant effect annotation", plotOutput("qtl_anno_donut") %>% withSpinner(), HTML(paste("<b>", "Figure: pQTL/eQTL annotation summary. ", "</b>", "<em>", "Percentage of QTLs annotated by variant effects", "</em>"))),
@@ -917,7 +987,7 @@ server <- function(input, output, session) {
   # UI for QTL result tables
   output$qtl_tables_ui <- renderUI({
     req(input$qtl_final_upload)
-    tagList(tabBox(title = "pQTL result tables", width = 12,
+    tagList(tabBox(title = "", width = 12,
                    tabPanel("pQTL table", DT::DTOutput("qtltable"), downloadButton("download_qtltable","Download table")),
                    tabPanel("pQTL gene tally", DT::DTOutput("qtltallytable"), downloadButton("download_qtltallytable","Download table")) ) )
   })  
@@ -931,7 +1001,7 @@ server <- function(input, output, session) {
   
   # pheno data - input - renderUI_phenofile ----
   output$pheno_file_ui <- renderUI({
-    fileInput("phenofile", "Choose file", multiple = FALSE, accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv",".xls",".xlsx")) })
+    fileInput("phenofile", "Choose molQTL file", multiple = FALSE, accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv",".xls",".xlsx")) })
   
   # Analysis - select_phenofiltertype ----
   output$pheno_filtertype_ui <- renderUI({
@@ -1017,7 +1087,7 @@ server <- function(input, output, session) {
     
     req(forout_reactive$phenodf)
     
-    if((sapply(forout_reactive$phenodf, class)[3] %in% c("numeric", "integer", "double")) & (sapply(forout_reactive$phenodf, class)[5] %in% c("numeric", "integer", "double"))){
+    if(ncol(forout_reactive$phenodf) == 6 & (sapply(forout_reactive$phenodf, class)[3] %in% c("numeric", "integer", "double")) & (sapply(forout_reactive$phenodf, class)[5] %in% c("numeric", "integer", "double"))){
     
     sendSweetAlert(session = session, title = "Commencing Processing!", text = "Please be patient, this will just take a minute...", type = "info", btn_labels = NA, closeOnClickOutside = FALSE)
     
@@ -1070,8 +1140,8 @@ server <- function(input, output, session) {
     
     } else {
       
-      sendSweetAlert(session = session, title = "Processing problem.", text = "Please confirm that columns 3 and 5 are numeric.", type = "error")
-      
+      sendSweetAlert(session = session, title = "Processing problem.", text = "Please confirm that the datafile contains 6 columns where columns 3 & 5 are numeric.", type = "error")
+
     }
     
   })
@@ -1080,16 +1150,16 @@ server <- function(input, output, session) {
   # renderUI_proxydonut ----
   output$pheno_proxydonut_ui <- renderUI({
     req(forout_reactive$table_pheno_processed)
-    box(title = "molQTL annotation summary", width = 12, plotOutput("pheno_proxy_donut") %>% withSpinner(),
-        HTML(paste("<b>", "Figure: phenotype annotation summary. ", "</b>",
-                   "<em>", "Percentage of phenotypes or molecular traits by grouping.", "</em>")))
+    box(title = "", width = 12, plotOutput("pheno_proxy_donut") %>% withSpinner(),
+        HTML(paste("<b>", "Figure: molQTL annotation summary. ", "</b>",
+                   "<em>", "Percentage of molQTLs annotated by the grouping variable.", "</em>")))
   })  
   
   
   # renderUI_phenotables ----
   output$pheno_tables_ui <- renderUI({
     req(input$pheno_final_upload)
-    tagList(tabBox(title = "molQTL result tables", width = 12,
+    tagList(tabBox(title = "", width = 12,
                    tabPanel("molQTL table", DT::DTOutput("phenotable"), downloadButton("download_phenotable","Download table")),
                    tabPanel("molQTL gene tally", DT::DTOutput("phenotallytable"), downloadButton("download_phenotallytable","Download table")) ) )
   })  
@@ -1681,12 +1751,12 @@ server <- function(input, output, session) {
     req(forout_reactive$protanno)
     
     if(ncol(forout_reactive$protanno) > 100){
-      return(forout_reactive$protanno %>% select(1:100) %>% DT::datatable(., rownames = FALSE, 
-                                                        caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Protein annotation results. ", "</b>","<em>","Each protein ID is assigned a unique variable ID (varID) and is annotated with Cell Atlas localizations.","</em>"))),
+      return(forout_reactive$protanno %>% head(., 100) %>% select(1:100) %>% DT::datatable(., rownames = FALSE, 
+                                                        caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Protein/transcript annotation results. ", "</b>","<em>","Each protein/transcript ID is assigned a unique variable ID (varID) and is annotated with Cell Atlas localizations. Only the first 100 rows are displayed. Please download the table to view all data.","</em>"))),
                                                         options = list(scrollX = TRUE, pageLength = 5, dom = 'tip')))      
     } else {
-      return(forout_reactive$protanno %>% DT::datatable(., rownames = FALSE,
-                                                        caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Protein annotation results. ", "</b>","<em>","Each protein ID is assigned a unique variable ID (varID) and is annotated with Cell Atlas localizations.","</em>"))),
+      return(forout_reactive$protanno %>% head(., 100) %>% DT::datatable(., rownames = FALSE,
+                                                        caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Protein/transcript annotation results. ", "</b>","<em>","Each protein/transcript ID is assigned a unique variable ID (varID) and is annotated with Cell Atlas localizations. Only the first 100 rows are displayed. Please download the table to view all data.","</em>"))),
                                                         options = list(scrollX = TRUE, pageLength = 5, dom = 'tip')))     
     }
     
@@ -1697,7 +1767,7 @@ server <- function(input, output, session) {
   output$cortable <- DT::renderDT({
     
     return(forout_reactive$table_complex %>% head(20) %>% select(varID1, varID2, VarVar, everything()) %>% DT::datatable(., rownames = FALSE,
-                                                               caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Protein corelation results. ", "</b>","<em>","Protein-Protein correlations are performed using user-specified parameters to discover co-regulated proteins. For each protein pair (p1 & p2) a correlation score (cor), p-value (pval) and q-value (qval) are displayed.","</em>"))),
+                                                               caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Correlation results. ", "</b>","<em>","Protein-protein or transcript-transcript correlations are performed using user-specified parameters to discover co-regulated pairs For each correlated pair (p1 & p2) a correlation score (cor), p-value (pval) and q-value (qval) are displayed. The following columns indicate the CORUM complex identifiers, complex names or presence in the database (ComplexID - inCORUM). After that the BioPlex pW score is shown, a column indicating whether the protein pair was found in BioPlex (inBioPlex, top 10 percent), and the STRINGdb linkscore. Finally, the subcellular localizations of the first and second protein/transcript are shown (loc1, loc2), followed by the overlap (overlap.loc) and column indicating whether any localizations where the same (share.loc).","</em>"))),
                                                                options = list(scrollX = TRUE, pageLength = 5, dom = 'tip')))
   }, server = FALSE)
   
@@ -2062,7 +2132,7 @@ server <- function(input, output, session) {
     links <- nw_edge %>% left_join(., nodes %>% select(var, numid) %>% `colnames<-`(c("varID1", "source"))) %>% left_join(., nodes %>% select(var, numid) %>% `colnames<-`(c("varID2", "target"))) %>% select(source, target, varID1, varID2, everything())
     
     if(input$nodelabelsnw == "None"){nodes <- nodes %>% mutate(var = NA)}
-    if(input$nodelabelsnw == "No SNP labels"){nodes <- nodes %>% mutate(var = case_when(nodetype %in% c("SNP") ~ "", TRUE ~ nodes$var))}
+    if(input$nodelabelsnw == "No SNP labels"){nodes <- nodes %>% mutate(var = case_when(nodetype %in% c("SNP") ~ "", TRUE ~ as.character(nodes$var)))}
     
 
     # if more than 2000, don't render, but allow download
@@ -2200,7 +2270,7 @@ server <- function(input, output, session) {
                        formatC(nrow(forout_reactive$protanno %>% filter(inDGIdb == TRUE)) / nrow(forout_reactive$protanno), digits = 2) %>% as.numeric()
     )
     
-    df$n <- c(nrow(forout_reactive$protfilter),
+    df$n <- c(nrow(forout_reactive$protanno),
                   (nrow(forout_reactive$protanno) - forout_reactive$protanno %>% dplyr::select(CP_loc) %>% is.na() %>% sum()),
               (nrow(forout_reactive$protanno %>% filter(inDGIdb == TRUE))) )
     

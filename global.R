@@ -50,6 +50,7 @@ if("config.yml" %in% list.files()){
 demotable_q <- read.csv("data/demotable/demotable_qtl.csv", header = TRUE, check.names = FALSE)
 demotable_p <- read.csv("data/demotable/demotable_protein.csv", header = TRUE, check.names = FALSE)
 demotable_pheno <- read.csv("data/demotable/demotable_lqtl.csv", header = TRUE, check.names = FALSE)
+demotable_ld <- read.csv("data/demotable/demotable_ld.csv", header = TRUE, check.names = FALSE)
 
 # Read GWAS Catalog study table for users to select the study to download (molQTL tab)
 gwas_catalog <- readRDS("data/gwas_catalog/gwascatalog_short.Rds") %>% as.data.frame()

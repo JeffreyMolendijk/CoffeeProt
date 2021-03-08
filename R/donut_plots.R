@@ -27,6 +27,11 @@ cp_donut_plot <- function(qtldata, type){
     
   }
   
+  # Add exception for data where there are less than 2 groups, then return empty plot
+  if(qtldata %>% select(!! rlang::sym(col_select)) %>% unlist %>% unique %>% length() < 2){
+    plot_qtl_proxydonut <- ggplot() + theme_void()
+  } else {
+  
   proxydonut <- qtldata %>% select(qtlcolnames[1], !! rlang::sym(col_select))
   
   proxydonut <- proxydonut %>% group_by(!! rlang::sym(col_select)) %>% summarise(count = n()) %>% arrange(-count) %>% 
@@ -52,6 +57,8 @@ cp_donut_plot <- function(qtldata, type){
     scale_fill_discrete(name = plotlabel) +
     scale_color_discrete(name = plotlabel) + 
     theme_void()
+  
+  }
   
   return(plot_qtl_proxydonut)
   
