@@ -1275,7 +1275,7 @@ server <- function(input, output, session) {
     if(forout_reactive$qtl_annotated == FALSE){
       
       if(input$edgetype == "proxy"){
-      tagList(selectInput("edgeproxy", "Select QTLs to include", choices = c(forout_reactive$table_qtl_processed %>% select(!! rlang::sym(forout_reactive$qtlcolnames[9])) %>% unique %>% as.vector()), selected = c(forout_reactive$table_qtl_processed %>% select(!! rlang::sym(forout_reactive$qtlcolnames[9])) %>% unique %>% as.vector()), multiple = TRUE, selectize = TRUE, width = NULL, size = NULL),
+      tagList(selectInput("edgeproxy", "Select QTLs to include ", choices = c(forout_reactive$table_qtl_processed %>% select(!! rlang::sym(forout_reactive$qtlcolnames[9])) %>% unique %>% as.vector()), selected = c(forout_reactive$table_qtl_processed %>% select(!! rlang::sym(forout_reactive$qtlcolnames[9])) %>% unique %>% as.vector()), multiple = TRUE, selectize = TRUE, width = NULL, size = NULL),
                 tags$div(title="e.g. only keep edges of SNPs which contain a cis and a trans connection", checkboxInput("edgeproxy_intersect_rsid", label = "Only keep SNPs with all selected proxies?", value = FALSE)),
                 tags$div(title="e.g. only keep edges of proteins which contain a cis and a trans connection.", checkboxInput("edgeproxy_intersect", label = "Only keep proteins with all selected proxies?", value = FALSE)),
                 actionButton(inputId = "protqtl_bttn", label = "Make plot!"))

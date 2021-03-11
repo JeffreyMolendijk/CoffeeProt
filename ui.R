@@ -10,7 +10,15 @@ ui <- dashboardPage(
   # The CoffeeProt logo in the header is read from the coffeeprot.svg file in the www folder
   # Clicking the logo opens a link to the CoffeeProt github page
   dashboardHeader(title = tags$a(href='https://github.com/JeffreyMolendijk/CoffeeProt', target = '_blank',
-                                 tags$img(src=paste0("coffeeprot.svg"), height = "70%", width = "auto", align = "middle"))),
+                                 tags$img(src=paste0("coffeeprot.svg"), height = "70%", width = "auto", align = "middle")),
+                  
+                  dropdownMenu(type = "messages",
+                               
+                               tags$li(HTML('<li><a href="https://github.com/JeffreyMolendijk/CoffeeProt" target="_blank"><i class="fa fa-code-branch"></i><h4>GitHub</h4><p>JeffreyMolendijk/CoffeeProt</p></a></li>')),
+                               tags$li(HTML('<li><a href="https://biomedicalsciences.unimelb.edu.au/sbs-research-groups/physiology/Parker-laboratory-Metabolic-Proteomics" target="_blank"><i class="fa fa-user"></i><h4>About us</h4><p>Parker Laboratory</p></a></li>')),
+                               tags$li(HTML('<li><a href="mailto:support@coffeeprot.com" target="_blank"><i class="fa fa-question"></i><h4>Support</h4><p>Email: support@coffeeprot.com</p></a></li>'))
+
+                  )),
   
   # Sidebar menu with subitems ----
   dashboardSidebar(
