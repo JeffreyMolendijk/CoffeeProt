@@ -62,7 +62,7 @@
 
 <p align="center"><img src="./www/images/tutorial_2_proteinparameters.PNG" alt="drawing" width="90%"/></p>
 
-<sup>[1] Maximum file size of 500 Mb</sup> <br>
+<sup>[1] Maximum file size of 900 Mb</sup> <br>
 <sup>[2] Any column after the first column should only contain numeric data, blank cells or missing values (NA, Na, na, NaN, NAN)</sup>
 
 <br>
@@ -174,3 +174,11 @@ Email: support@coffeeprot.com
 
 ## <b>Acknowledgements</b>
 <p align="justify"> This research was supported by use of the Nectar Research Cloud and by the University of Melbourne Research Platform Services. The Nectar Research Cloud is a collaborative Australian research platform supported by the National Collaborative Research Infrastructure Strategy. This work was funded by an Australian National Health and Medical Research Council Ideas Grant (APP1184363) and The University of Melbourne Driving Research Momentum program. </p>
+
+Human Protein Atlas subcellular localization data was obtained from http://www.proteinatlas.org and has previously been described in  <a href="http://dx.doi.org/10.1126%2Fscience.aal3321">Thul PJ et al., A subcellular map of the human proteome. Science. (2017)</a>.
+
+Drug-gene interaction data was obtained from DGIdb (https://www.dgidb.org/downloads).
+
+Protein complex or protein interaction data were retrieved from the CORUM (http://mips.helmholtz-muenchen.de/corum/#download), BioPlex 3.0 (https://bioplex.hms.harvard.edu/interactions.php) and STRINGdb (https://string-db.org/cgi/download) databases.
+
+The DNA vector image used in the CoffeeProt banner on the Welcome page was obtained from Vecteezy (<a href="https://www.vecteezy.com/vector-art/1270772-human-dna-design">Human dna design  Vectors by Vecteezy</a>)

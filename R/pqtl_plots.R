@@ -35,13 +35,14 @@ cp_pqtl_locplot <- function(qtldata){
 #'
 #' @param qtldata A pQTL table.
 #' @param circos_select Concatenated strings containing gene names to be plotted.
+#' @param significance Indicate whether the data contains p-values or LOD.
 #' 
 #' @return A cp_circos object, to be used in \code{cp_circos_plot}
 #'
 #' @examples
 #' cp_circos_create(qtldata, c("gene1", "gene2","gene3"))
 #' 
-cp_circos_create <- function(qtldata, circos_select){
+cp_circos_create <- function(qtldata, circos_select, significance){
   
   qtlcolnames <- colnames(qtldata)
   
@@ -64,24 +65,28 @@ cp_circos_create <- function(qtldata, circos_select){
   
   
   #Use the circlize normalizetodataframe function before making links > seems to cause errors.
-  bed <- qtldata %>% filter(!! rlang::sym(qtlcolnames[4]) %in% target) %>% mutate(gene_symbol = !! rlang::sym(qtlcolnames[4]), snp_chr = paste0("chr", as.character(!! rlang::sym(qtlcolnames[3]))), gene_chr = paste0("chr", as.character(!! rlang::sym(qtlcolnames[7]))), snp_bp_abs = !! rlang::sym(qtlcolnames[2]),  snp_bp_abs_end = !! rlang::sym(qtlcolnames[2]), pvalue = !! rlang::sym(qtlcolnames[8]), gene_start_abs = !! rlang::sym(qtlcolnames[5]), gene_end_abs = !! rlang::sym(qtlcolnames[6])) %>% select(snp_chr, snp_bp_abs, snp_bp_abs_end, gene_start_abs, gene_end_abs, pvalue, everything()) 
+  if(significance == "pval"){
+    bed <- qtldata %>% filter(!! rlang::sym(qtlcolnames[4]) %in% target) %>% mutate(gene_symbol = !! rlang::sym(qtlcolnames[4]), snp_chr = paste0("chr", as.character(!! rlang::sym(qtlcolnames[3]))), gene_chr = paste0("chr", as.character(!! rlang::sym(qtlcolnames[7]))), snp_bp_abs = !! rlang::sym(qtlcolnames[2]),  snp_bp_abs_end = !! rlang::sym(qtlcolnames[2]), sign = -log10(!! rlang::sym(qtlcolnames[8])), gene_start_abs = !! rlang::sym(qtlcolnames[5]), gene_end_abs = !! rlang::sym(qtlcolnames[6])) %>% select(snp_chr, snp_bp_abs, snp_bp_abs_end, gene_start_abs, gene_end_abs, sign, everything()) 
+  } else {
+    bed <- qtldata %>% filter(!! rlang::sym(qtlcolnames[4]) %in% target) %>% mutate(gene_symbol = !! rlang::sym(qtlcolnames[4]), snp_chr = paste0("chr", as.character(!! rlang::sym(qtlcolnames[3]))), gene_chr = paste0("chr", as.character(!! rlang::sym(qtlcolnames[7]))), snp_bp_abs = !! rlang::sym(qtlcolnames[2]),  snp_bp_abs_end = !! rlang::sym(qtlcolnames[2]), sign = !! rlang::sym(qtlcolnames[8]), gene_start_abs = !! rlang::sym(qtlcolnames[5]), gene_end_abs = !! rlang::sym(qtlcolnames[6])) %>% select(snp_chr, snp_bp_abs, snp_bp_abs_end, gene_start_abs, gene_end_abs, sign, everything()) 
+  }
   bed <- bed %>% mutate(snp_bp_abs_end = (snp_bp_abs_end + (bed_genomesize / 1000)))
   bed <- bed %>% mutate(gene_end_abs = case_when(gene_end_abs - gene_start_abs < (bed_genomesize / 1000) ~  (gene_start_abs + (bed_genomesize / 1000)), TRUE ~ gene_end_abs) )
   bed <- bed %>% circlize:::validate_data_frame()
   bed <- bed %>% circlize:::normalizeToDataFrame()
-  bed1 <- bed %>% select(snp_chr, snp_bp_abs, snp_bp_abs_end, pvalue) %>% mutate(gene_symbol = snp_chr)
-  bed2 <- bed %>% select(gene_chr, gene_start_abs, gene_end_abs, pvalue, gene_symbol)
+  bed1 <- bed %>% select(snp_chr, snp_bp_abs, snp_bp_abs_end, sign) %>% mutate(gene_symbol = snp_chr)
+  bed2 <- bed %>% select(gene_chr, gene_start_abs, gene_end_abs, sign, gene_symbol)
   
-  #Create colors for plot, if there is only 1 unique pvalue make the color gray, else make gradient.
-  if(bed$pvalue %>% unique() %>% length() < 2){
+  #Create colors for plot, if there is only 1 unique sign make the color gray, else make gradient.
+  if(bed$sign %>% unique() %>% length() < 2){
     linkcolors <- paste0("gray", "80")
   } else {
-    ii <- cut(-log10(bed$pvalue), breaks = seq(min(-log10(bed$pvalue)), max(-log10(bed$pvalue)), len = 100), include.lowest = TRUE)
+    ii <- cut(bed$sign, breaks = seq(min(bed$sign), max(bed$sign), len = 100), include.lowest = TRUE)
     linkcolors <- colorRampPalette(c("gray", "darkblue"))(99)[ii]
     linkcolors <- paste0(linkcolors, "80")
   }
   
-  chrlabels <- bed2 %>% select(-pvalue) %>% `colnames<-`(colnames(chrlocs)) %>% distinct(snp_chr, chrstart, .keep_all = TRUE) %>% mutate(labelname = gene_symbol, labcol = "black") %>% bind_rows(chrlocs %>% mutate(chrstart = ((chrstart + chrend) / 2), chrend = chrstart, labelname = snp_chr, labcol = "darkgray"))
+  chrlabels <- bed2 %>% select(-sign) %>% `colnames<-`(colnames(chrlocs)) %>% distinct(snp_chr, chrstart, .keep_all = TRUE) %>% mutate(labelname = gene_symbol, labcol = "black") %>% bind_rows(chrlocs %>% mutate(chrstart = ((chrstart + chrend) / 2), chrend = chrstart, labelname = snp_chr, labcol = "darkgray"))
   
   cp_circos <- list()
   cp_circos$chrlocs <- chrlocs

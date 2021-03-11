@@ -594,6 +594,12 @@ server <- function(input, output, session) {
     # Confirm that columns 2, 5, 6, 8 are numeric, integer or double columns.
     if((sapply(df, class)[2] %in% c("numeric", "integer", "double")) & (sapply(df, class)[5] %in% c("numeric", "integer", "double")) & (sapply(df, class)[6] %in% c("numeric", "integer", "double")) & (sapply(df, class)[8] %in% c("numeric", "integer", "double"))){
       
+      # If there is no proxy data (e.g. all missing / NA) then paste the contents of that column
+      if(df %>% select(!! rlang::sym(forout_reactive$qtlcolnames[9])) %>% unique %>% length < 2){
+        print("proxy only has 1 group")
+        df <- df %>% mutate(!! rlang::sym(forout_reactive$qtlcolnames[9]) := paste(!! rlang::sym(forout_reactive$qtlcolnames[9])))
+      }
+      
       forout_reactive$qtldf <- df
     } else {
       
@@ -644,6 +650,8 @@ server <- function(input, output, session) {
     sendSweetAlert(session = session, title = "Commencing Processing!", text = "Please be patient, this will just take a minute...", type = "info", btn_labels = NA, closeOnClickOutside = FALSE)
       
     if(input$qtl_quanttype == "pval"){
+      
+      forout_reactive$qtl_quanttype <- "pval"
     
       if(input$qtl_filtertype == "single"){
       df <- forout_reactive$qtldf %>% select(forout_reactive$qtlcolnames[1], forout_reactive$qtlcolnames[2], forout_reactive$qtlcolnames[3], forout_reactive$qtlcolnames[4], forout_reactive$qtlcolnames[5], forout_reactive$qtlcolnames[6], forout_reactive$qtlcolnames[7], forout_reactive$qtlcolnames[8], forout_reactive$qtlcolnames[9]) %>% filter(!! rlang::sym(forout_reactive$qtlcolnames[8]) < 10^(input$qtlpval))
@@ -653,7 +661,9 @@ server <- function(input, output, session) {
         df <- df %>% filter( !(!! rlang::sym(forout_reactive$qtlcolnames[9]) == forout_reactive$proxylist_qtl[i] & !! rlang::sym(forout_reactive$qtlcolnames[8]) > 10^(input[[paste0("proxy_", forout_reactive$proxylist_qtl[i])]])))
       }
       } } else {
-      
+        
+        forout_reactive$qtl_quanttype <- "lod"
+        
         if(input$qtl_filtertype == "single"){
           df <- forout_reactive$qtldf %>% select(forout_reactive$qtlcolnames[1], forout_reactive$qtlcolnames[2], forout_reactive$qtlcolnames[3], forout_reactive$qtlcolnames[4], forout_reactive$qtlcolnames[5], forout_reactive$qtlcolnames[6], forout_reactive$qtlcolnames[7], forout_reactive$qtlcolnames[8], forout_reactive$qtlcolnames[9]) %>% filter(!! rlang::sym(forout_reactive$qtlcolnames[8]) > input$qtlpval)
         } else {
@@ -768,7 +778,7 @@ server <- function(input, output, session) {
       message("Status: No gene name conversion needed")
     }
     
-    
+
     #### ANNOTATION FOR VARIANT EFFECTS
     if(input$qtl_anno_species == "No annotation"){
       forout_reactive$table_qtl_processed <- df 
@@ -919,7 +929,7 @@ server <- function(input, output, session) {
   observeEvent(input$circos_bttn, {
     req(forout_reactive$table_qtl_processed, input$circos_select)
     
-    forout_reactive$cp_circos <- cp_circos_create(forout_reactive$table_qtl_processed, input$circos_select)
+    forout_reactive$cp_circos <- cp_circos_create(forout_reactive$table_qtl_processed, input$circos_select, forout_reactive$qtl_quanttype)
     
   })
   
@@ -1017,10 +1027,10 @@ server <- function(input, output, session) {
   output$pheno_pval_ui <- renderUI({
     req(input$pheno_filtertype, input$pheno_quanttype, is.numeric(forout_reactive$phenodf[[ rlang::sym(forout_reactive$phenocolnames[5]) ]]))
     
-    # Define the maximum pvalue for the p-value input slider
-    maxpval <- forout_reactive$phenodf[[ rlang::sym(forout_reactive$phenocolnames[5]) ]] %>% -(log10(.)) %>% .[is.finite(.)] %>% max() %>% floor()
-    
     if(input$pheno_quanttype == "pval"){
+      
+      # Define the maximum pvalue for the p-value input slider
+      maxpval <- forout_reactive$phenodf[[ rlang::sym(forout_reactive$phenocolnames[5]) ]] %>% -(log10(.)) %>% .[is.finite(.)] %>% max() %>% floor()
       
       if(input$pheno_filtertype == "single"){
         forout_reactive$proxylist_pheno <- forout_reactive$phenodf %>% select(forout_reactive$phenocolnames[6]) %>% unique %>% unlist()
@@ -2330,7 +2340,7 @@ server <- function(input, output, session) {
       forout_reactive$qtl_chrom <- forout_reactive$table_qtl_processed %>% filter(!! rlang::sym(forout_reactive$qtlcolnames[3]) == input$protqtlplot_chrselect)  %>% mutate(pc_x = (((!! rlang::sym(forout_reactive$qtlcolnames[2]) - min(!! rlang::sym(forout_reactive$qtlcolnames[2])) ) / (max(!! rlang::sym(forout_reactive$qtlcolnames[2])) - min(!! rlang::sym(forout_reactive$qtlcolnames[2]))) ) * 100 )) %>% mutate(minpval = min(-log10(!! rlang::sym(forout_reactive$qtlcolnames[8]))), maxpval = max(-log10(!! rlang::sym(forout_reactive$qtlcolnames[8])))) %>% dplyr::group_by(!! rlang::sym(forout_reactive$qtlcolnames[3])) %>% mutate(mean_chr = mean(pc_x)) %>% ungroup()
     }
     
-    if(input$qtl_quanttype == "pval"){
+    if(forout_reactive$qtl_quanttype == "pval"){
       ymax = forout_reactive$qtl_chrom %>% select(!! rlang::sym(forout_reactive$qtlcolnames[8])) %>% -log10(.) %>% max %>% floor
       ymin = forout_reactive$qtl_chrom %>% select(!! rlang::sym(forout_reactive$qtlcolnames[8])) %>% -log10(.) %>% min %>% ceiling
       yint = c(1,5,10,25,50,100)

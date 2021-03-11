@@ -8,8 +8,8 @@ ui <- dashboardPage(
   title = "CoffeeProt",
   
   # The CoffeeProt logo in the header is read from the coffeeprot.svg file in the www folder
-  # Clicking the logo opens a link to the CoffeeProt BiorXiv pre-print
-  dashboardHeader(title = tags$a(href='https://doi.org/10.1101/2020.10.02.323246', target = '_blank',
+  # Clicking the logo opens a link to the CoffeeProt github page
+  dashboardHeader(title = tags$a(href='https://github.com/JeffreyMolendijk/CoffeeProt', target = '_blank',
                                  tags$img(src=paste0("coffeeprot.svg"), height = "70%", width = "auto", align = "middle"))),
   
   # Sidebar menu with subitems ----
@@ -58,7 +58,7 @@ ui <- dashboardPage(
       
       # Tabitem Welcome ----
       tabItem(tabName = "landing",
-              div(class = "jumbotron", HTML("<center><h1>Welcome to CoffeeProt!</h1></center>"), HTML("<center><p>For the integration of QTL and Protein/transcript data.</p></center>")),
+              div(class = "jumbotron", style="background-image: url(dna-banner.svg); background-size: cover;", HTML("<center><h1>Welcome to CoffeeProt!</h1></center>"), HTML("<center><p>For the integration of QTL and Protein/transcript data.</p></center>")),
               fluidRow(
                 column(6, fluidRow(div(class = "col-sm-12", div(class = "box box-primary", style = "padding-right: 5%; padding-left: 5%; font-size:110%", NULL, div(class = "box-body", shiny::includeMarkdown("README.md")))),
                 )),

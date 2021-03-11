@@ -28,7 +28,7 @@ cp_donut_plot <- function(qtldata, type){
   }
   
   # Add exception for data where there are less than 2 groups, then return empty plot
-  if(qtldata %>% select(!! rlang::sym(col_select)) %>% unlist %>% unique %>% length() < 2){
+  if(qtldata %>% select(!! rlang::sym(col_select)) %>% unlist %>% unique %>% length() < 1){
     plot_qtl_proxydonut <- ggplot() + theme_void()
   } else {
   
@@ -48,9 +48,9 @@ cp_donut_plot <- function(qtldata, type){
   
   proxydonut$pclabel <- tidyr::replace_na(proxydonut$pclabel, " ")
   
-  plot_qtl_proxydonut <- ggplot(proxydonut, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=plotlabel)) +
+  plot_qtl_proxydonut <- ggplot(proxydonut, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=paste(plotlabel))) +
     geom_rect() +
-    geom_text( x=2.5, aes(y=labpos, label=paste0((stringr::str_extract(pclabel, "^.{3}") %>% sub("\\.$","",.)),"%"), color=plotlabel), size=3) + 
+    geom_text( x=2.5, aes(y=labpos, label=paste0((stringr::str_extract(pclabel, "^.{3}") %>% sub("\\.$","",.)),"%"), color=paste(plotlabel)), size=3) + 
     annotate("text", col = "gray",  x = -1, y = 0, vjust = 0.5, label = c(paste0("annotated: \n", nrow(qtldata) - (qtldata %>% select(!! rlang::sym(col_select)) %>% is.na() %>% sum), " \\ ", nrow(qtldata)))) +
     coord_polar(theta="y") +
     xlim(c(-1, 4))  + 
