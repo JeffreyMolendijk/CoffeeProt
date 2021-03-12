@@ -101,10 +101,10 @@ server <- function(input, output, session) {
   
   # Demo tables ----
   # Rendered tables displayed on the Welcome page
-  output$demotable_protein <- DT::renderDT({return(DT::datatable(demotable_p, rownames = FALSE, class = "compact stripe", caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Example proteomics table. ", "</b>","<em>","Protein data must be uploaded as a matrix in which the first column contains protein identifiers and the remaining columns contain quantitative measurements. The accepted protein identifiers are gene names, Uniprot identifiers and ENSEMBL gene identifiers.","</em>"))), options = list(scrollX = TRUE, pageLength = 10, dom = 't')))}, server = FALSE)
-  output$demotable_qtl <- DT::renderDT({return(DT::datatable(demotable_q, rownames = FALSE, class = "compact stripe", caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Example pQTL table. ", "</b>","<em>","For the QTL data the uploaded matrix should contain separate columns containing (1) rsIDs, (2) SNP location, (3) SNP chromosome, (4) gene names, (5) gene start location, (6) gene end location, (7) gene chromosome, (8) a measure of significance and (9) a proxy or grouping column.","</em>"))), options = list(scrollX = TRUE, pageLength = 10, dom = 't')))}, server = FALSE)
-  output$demotable_pheno <- DT::renderDT({return(DT::datatable(demotable_pheno, rownames = FALSE, class = "compact stripe", caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Example phenotype table. ", "</b>","<em>","For the QTL data the uploaded matrix should contain separate columns containing (1) rsIDs, (2) gene names, (3) SNP location, (4) SNP chromosome, (5) a measure of significance and (6) a proxy or grouping column.","</em>"))), options = list(scrollX = TRUE, pageLength = 10, dom = 't')))}, server = FALSE)
-  output$demotable_ld <- DT::renderDT({return(DT::datatable(demotable_ld, rownames = FALSE, class = "compact stripe", caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Haplotype / LD block table. ", "</b>","<em>","For the haplotype data the uploaded matrix should contain separate columns containing (1) LD block chromosome, (2) LD block start position and (3) LD block end position. The start and end position format should match the format used in the pQTL/eQTL data","</em>"))), options = list(scrollX = TRUE, pageLength = 10, dom = 't')))}, server = FALSE)
+  output$demotable_protein <- DT::renderDT({return(DT::datatable(read.csv("data/demotable/demotable_protein.csv", header = TRUE, check.names = FALSE), rownames = FALSE, class = "compact stripe", caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Example proteomics table. ", "</b>","<em>","Protein data must be uploaded as a matrix in which the first column contains protein identifiers and the remaining columns contain quantitative measurements. The accepted protein identifiers are gene names, Uniprot identifiers and ENSEMBL gene identifiers.","</em>"))), options = list(scrollX = TRUE, pageLength = 10, dom = 't')))}, server = FALSE)
+  output$demotable_qtl <- DT::renderDT({return(DT::datatable(read.csv("data/demotable/demotable_qtl.csv", header = TRUE, check.names = FALSE), rownames = FALSE, class = "compact stripe", caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Example pQTL table. ", "</b>","<em>","For the QTL data the uploaded matrix should contain separate columns containing (1) rsIDs, (2) SNP location, (3) SNP chromosome, (4) gene names, (5) gene start location, (6) gene end location, (7) gene chromosome, (8) a measure of significance and (9) a proxy or grouping column.","</em>"))), options = list(scrollX = TRUE, pageLength = 10, dom = 't')))}, server = FALSE)
+  output$demotable_pheno <- DT::renderDT({return(DT::datatable(read.csv("data/demotable/demotable_lqtl.csv", header = TRUE, check.names = FALSE), rownames = FALSE, class = "compact stripe", caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Example phenotype table. ", "</b>","<em>","For the QTL data the uploaded matrix should contain separate columns containing (1) rsIDs, (2) gene names, (3) SNP location, (4) SNP chromosome, (5) a measure of significance and (6) a proxy or grouping column.","</em>"))), options = list(scrollX = TRUE, pageLength = 10, dom = 't')))}, server = FALSE)
+  output$demotable_ld <- DT::renderDT({return(DT::datatable(read.csv("data/demotable/demotable_ld.csv", header = TRUE, check.names = FALSE), rownames = FALSE, class = "compact stripe", caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Haplotype / LD block table. ", "</b>","<em>","For the haplotype data the uploaded matrix should contain separate columns containing (1) LD block chromosome, (2) LD block start position and (3) LD block end position. The start and end position format should match the format used in the pQTL/eQTL data","</em>"))), options = list(scrollX = TRUE, pageLength = 10, dom = 't')))}, server = FALSE)
   
   
   # Demoset text ----
@@ -302,12 +302,7 @@ server <- function(input, output, session) {
       sendSweetAlert(session = session, title = "Error! Please upload a valid protein file", text = "All columns except for the first should contain numeric data. Missing values could be a blank cell, or one of the following strings: 'NA', 'Na', 'NaN', 'NAN', 'na', 'nan'", type = "error")
       } else {
       
-      # Loading required databases
-      db_string <<- fst::read_fst("database/db_string_hs_100.fst")
-      db_bioplex3 <<- readRDS(file = "database/db_bioplex3.Rds")
-      db_bioplex3_4pc <<- db_bioplex3 %>% filter(pInt >= quantile(x = db_bioplex3$pInt, 0.90))
-      db_corum_gp <<- readRDS(file = "database/db_corum_gp.Rds")
-      
+  
       # Load Human Protein Atlas, but edit to include ancestor localization terms for more accurate overlap
       db_hpa <- readRDS(file = "database/db_hpa.Rds")
       ancestors <- readxl::read_excel(path = 'database/localization_ancestors.xlsx' ) %>% 
@@ -320,7 +315,7 @@ server <- function(input, output, session) {
         db_hpa$CP_loc <- db_hpa$CP_loc %>% sub(ancestors$Term[i], ancestors$term_ancestor[i], .)
       }
       
-      db_hpa <<- db_hpa %>% mutate(CP_loc = sapply(strsplit(db_hpa$CP_loc, ";"), function(x) paste(unique(x), collapse = ";"))) %>% select(-ENSG, -Uniprot, -Reliability)
+      db_hpa <- db_hpa %>% mutate(CP_loc = sapply(strsplit(db_hpa$CP_loc, ";"), function(x) paste(unique(x), collapse = ";"))) %>% select(-ENSG, -Uniprot, -Reliability)
       
       
       # Confirm that the protein data and protNA are present
@@ -413,6 +408,12 @@ server <- function(input, output, session) {
       
       req(forout_reactive$protdf)
       sendSweetAlert(session = session, title = "Running correlation (1/2)", text = "Please be patient, this will just take a few minutes...", type = "info", btn_labels = NA, closeOnClickOutside = FALSE)
+      
+      # Loading required databases
+      db_string <- fst::read_fst("database/db_string_hs_100.fst")
+      db_bioplex3 <- readRDS(file = "database/db_bioplex3.Rds")
+      db_bioplex3_4pc <<- db_bioplex3 %>% filter(pInt >= quantile(x = db_bioplex3$pInt, 0.90))
+      db_corum_gp <- readRDS(file = "database/db_corum_gp.Rds")
       
       # Impute missing values prior to performing correlation analyses
       df <- imputeLCMD::impute.MinDet(forout_reactive$protfilter %>% dplyr::select(3:ncol(.))) %>% `colnames<-`(paste0("X", colnames(.))) %>% `row.names<-`(forout_reactive$protfilter$varID)
