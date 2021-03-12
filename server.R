@@ -315,9 +315,8 @@ server <- function(input, output, session) {
         db_hpa$CP_loc <- db_hpa$CP_loc %>% sub(ancestors$Term[i], ancestors$term_ancestor[i], .)
       }
       
-      db_hpa <- db_hpa %>% mutate(CP_loc = sapply(strsplit(db_hpa$CP_loc, ";"), function(x) paste(unique(x), collapse = ";"))) %>% select(-ENSG, -Uniprot, -Reliability)
-      
-      
+      db_hpa <- db_hpa %>% mutate(CP_loc = sapply(strsplit(db_hpa$CP_loc, ";"), function(x) paste(unique(x), collapse = ";"))) %>% select(-ENSG, -Uniprot, -`HyperLOPIT location`, -Reliability) %>% rename("HPA_IF_protein_location" = `IF main protein location`)
+
       # Confirm that the protein data and protNA are present
       req(forout_reactive$protdf, input$protNA)
 
@@ -355,7 +354,7 @@ server <- function(input, output, session) {
       
       
       # Add drug-gene interaction database annotations by joining on gene names
-      df <- left_join(df %>% mutate(ID = tolower(.$ID)), db_hpa, by = c("ID" = "Gene")) %>% mutate(inDGIdb = tolower(ID) %in% tolower(db_dgidb$gene_name)) %>% select(varID, ID, `IF main protein location`:CP_loc, inDGIdb, everything())
+      df <- left_join(df %>% mutate(ID = tolower(.$ID)), db_hpa, by = c("ID" = "Gene")) %>% mutate(inDGIdb = tolower(ID) %in% tolower(db_dgidb$gene_name)) %>% select(varID, ID, HPA_IF_protein_location:CP_loc, inDGIdb, everything())
       
       
       # If manual annotations have been uploaded, add them to df here... (Currently in development)
@@ -385,7 +384,7 @@ server <- function(input, output, session) {
           message("Status: No gene name conversion needed")
         }
         
-        df <- left_join(df, protanno_manual) %>% select(varID, ID, `IF main protein location`:CP_loc, inDGIdb, manual_annotation, everything())
+        df <- left_join(df, protanno_manual) %>% select(varID, ID, HPA_IF_protein_location:CP_loc, inDGIdb, manual_annotation, everything())
         
       }
       
@@ -469,7 +468,7 @@ server <- function(input, output, session) {
       
       
       # Test database presence of the VarVar column in CORUM, BioPlex etc.
-      complex <- cor %>% mutate(VarVar = tolower(VarVar)) %>% left_join(., db_corum_gp %>% mutate(Genepair = tolower(Genepair)) %>% dplyr::select(ComplexID:ComplexName, ComplexIDName), by = c("VarVar" = "Genepair")) %>% select(-p1, -p2) %>% mutate(inCORUM = is.na(ComplexID) == FALSE) %>% left_join(., db_bioplex3_4pc %>% mutate(VarVar = tolower(VarVar)) %>% dplyr::select(VarVar, pW), by = "VarVar") %>% mutate(inBioplex = is.na(pW) == FALSE) %>% left_join(., db_string) %>% distinct(VarVar, .keep_all = TRUE)
+      complex <- cor %>% mutate(VarVar = tolower(VarVar)) %>% left_join(., db_corum_gp %>% mutate(Genepair = tolower(Genepair)) %>% dplyr::select(ComplexID:ComplexName), by = c("VarVar" = "Genepair")) %>% select(-p1, -p2) %>% mutate(inCORUM = is.na(ComplexID) == FALSE) %>% left_join(., db_bioplex3_4pc %>% mutate(VarVar = tolower(VarVar)) %>% dplyr::select(VarVar, pW), by = "VarVar") %>% mutate(inBioplex = is.na(pW) == FALSE) %>% left_join(., db_string) %>% distinct(VarVar, .keep_all = TRUE)
       
       
       # Check whether the two correlated proteins share a subcellular localization and report the overlap (slow computation)
@@ -480,6 +479,8 @@ server <- function(input, output, session) {
       # Assigning results to reactive values and report progress to the user
       forout_reactive$table_complex <- complex
       updateProgressBar(session = session, id = "pb2", value = 100)
+      
+      
       
       sendSweetAlert(session = session, title = "Correlation Success!", text = "Please proceed to the QTL upload (optional) or Analysis tabs", type = "success")
       message("Status: Protein correlation success")  
@@ -1247,10 +1248,10 @@ server <- function(input, output, session) {
     } else if (input$prottype == "all"){
       
       if(forout_reactive$qtl_annotated == FALSE){
-        tagList(selectizeInput("protqtlplot_complexselect", "Current selection", (c("All proteins", forout_reactive$table_complex %>% filter(cor > input$param_qtlprot_cor & qval < 10^(input$param_qtlprot_qval))  %>% select(varID1, varID2) %>% c(.$varID1, .$varID2) %>% unique %>% unlist %>% as.vector() %>% sort(., decreasing = FALSE))), selected = NULL, multiple = TRUE, options = list(maxItems = 10)),
+        tagList(selectizeInput("protqtlplot_complexselect", "Current selection", (c("All proteins", forout_reactive$table_complex %>% filter(cor > input$param_qtlprot_cor & qval < 10^(input$param_qtlprot_qval))  %>% select(varID1, varID2) %>% c(.$varID1, .$varID2) %>% unique %>% unlist %>% as.vector() %>% sort(., decreasing = FALSE))), selected = "All proteins", multiple = TRUE, options = list(maxItems = 10)),
                 radioGroupButtons(inputId = "edgetype", label = "Select edge type", choices = c('Proxy' = "proxy", 'Intragenic' = 'intragenic'), selected = "proxy", justified = TRUE))  
       } else {
-        tagList(selectizeInput("protqtlplot_complexselect", "Current selection", (c("All proteins", forout_reactive$table_complex %>% filter(cor > input$param_qtlprot_cor & qval < 10^(input$param_qtlprot_qval))  %>% select(varID1, varID2) %>% c(.$varID1, .$varID2) %>% unique %>% unlist %>% as.vector() %>% sort(., decreasing = FALSE))), selected = NULL, multiple = TRUE, options = list(maxItems = 10)),
+        tagList(selectizeInput("protqtlplot_complexselect", "Current selection", (c("All proteins", forout_reactive$table_complex %>% filter(cor > input$param_qtlprot_cor & qval < 10^(input$param_qtlprot_qval))  %>% select(varID1, varID2) %>% c(.$varID1, .$varID2) %>% unique %>% unlist %>% as.vector() %>% sort(., decreasing = FALSE))), selected = "All proteins", multiple = TRUE, options = list(maxItems = 10)),
                 radioGroupButtons(inputId = "edgetype", label = "Select edge type", choices = c('Proxy' = "proxy", 'Intragenic' = 'intragenic', 'Variant effect' = "ve", "Variant impact" = "impact"), selected = "proxy", justified = TRUE))
       }
       
@@ -2321,23 +2322,22 @@ server <- function(input, output, session) {
   # Analysis - ProtQTL plot ----
   observeEvent(input$protqtl_bttn, {
     
-    req(forout_reactive$table_complex, forout_reactive$table_qtl_processed, input$protqtlplot_chrselect, input$param_qtlprot_cor, input$param_qtlprot_qval)
+    req(forout_reactive$table_complex, forout_reactive$table_qtl_processed, isolate(input$protqtlplot_chrselect), isolate(input$param_qtlprot_cor), isolate(input$param_qtlprot_qval))
     
-    if(nrow(forout_reactive$table_complex %>% filter(cor > input$param_qtlprot_cor & qval < 10^(input$param_qtlprot_qval))) == 0){sendSweetAlert(session = session, title = "Error, dataset contains 0 rows after filtering", text = "Please select less stringent cut-offs", type = "error")}
-    validate(need(nrow(forout_reactive$table_complex %>% filter(cor > input$param_qtlprot_cor & qval < 10^(input$param_qtlprot_qval)))!=0, "There are no matches in the dataset. Try removing or relaxing one or more filters."))
-    
-    if(!isTruthy(input$protqtlplot_complexselect)){sendSweetAlert(session = session, title = "Error, Please select a protein or complex", text = "Please select at least one protein or complex", type = "error")}
-    validate(need(isTruthy(input$protqtlplot_complexselect), "Please select at least one protein or complex."))
-    
-    
-    sendSweetAlert(session = session, title = "Creating SNP-Protein plots", text = "", type = "success")
+    sendSweetAlert(session = session, title = "Creating SNP-Protein plots", text = "Started processing", type = "success")
     message("Action: Creating SNP-Prot plot")
     
+    if(nrow(forout_reactive$table_complex %>% filter(cor > isolate(input$param_qtlprot_cor) & qval < 10^(isolate(input$param_qtlprot_qval)))) == 0){sendSweetAlert(session = session, title = "Error, dataset contains 0 rows after filtering", text = "Please select less stringent cut-offs", type = "error")}
+    validate(need(nrow(forout_reactive$table_complex %>% filter(cor > isolate(input$param_qtlprot_cor) & qval < 10^(isolate(input$param_qtlprot_qval))))!=0, "There are no matches in the dataset. Try removing or relaxing one or more filters."))
     
-    if(input$protqtlplot_chrselect == "All Chromosomes"){
+    if(!isTruthy(isolate(input$protqtlplot_complexselect))){sendSweetAlert(session = session, title = "Error, Please select a protein or complex", text = "Please select at least one protein or complex", type = "error")}
+    validate(need(isTruthy(isolate(input$protqtlplot_complexselect)), "Please select at least one protein or complex."))
+    
+    
+    if(isolate(input$protqtlplot_chrselect) == "All Chromosomes"){
       forout_reactive$qtl_chrom <- forout_reactive$table_qtl_processed  %>% mutate(pc_x = ((!! rlang::sym(forout_reactive$qtlcolnames[2]) / max(!! rlang::sym(forout_reactive$qtlcolnames[2]))) * 100 )) %>% mutate(minpval = min(-log10(!! rlang::sym(forout_reactive$qtlcolnames[8]))), maxpval = max(-log10(!! rlang::sym(forout_reactive$qtlcolnames[8])))) %>% dplyr::group_by(!! rlang::sym(forout_reactive$qtlcolnames[3])) %>% mutate(mean_chr = mean(pc_x)) %>% ungroup()
     } else {
-      forout_reactive$qtl_chrom <- forout_reactive$table_qtl_processed %>% filter(!! rlang::sym(forout_reactive$qtlcolnames[3]) == input$protqtlplot_chrselect)  %>% mutate(pc_x = (((!! rlang::sym(forout_reactive$qtlcolnames[2]) - min(!! rlang::sym(forout_reactive$qtlcolnames[2])) ) / (max(!! rlang::sym(forout_reactive$qtlcolnames[2])) - min(!! rlang::sym(forout_reactive$qtlcolnames[2]))) ) * 100 )) %>% mutate(minpval = min(-log10(!! rlang::sym(forout_reactive$qtlcolnames[8]))), maxpval = max(-log10(!! rlang::sym(forout_reactive$qtlcolnames[8])))) %>% dplyr::group_by(!! rlang::sym(forout_reactive$qtlcolnames[3])) %>% mutate(mean_chr = mean(pc_x)) %>% ungroup()
+      forout_reactive$qtl_chrom <- forout_reactive$table_qtl_processed %>% filter(!! rlang::sym(forout_reactive$qtlcolnames[3]) == isolate(input$protqtlplot_chrselect))  %>% mutate(pc_x = (((!! rlang::sym(forout_reactive$qtlcolnames[2]) - min(!! rlang::sym(forout_reactive$qtlcolnames[2])) ) / (max(!! rlang::sym(forout_reactive$qtlcolnames[2])) - min(!! rlang::sym(forout_reactive$qtlcolnames[2]))) ) * 100 )) %>% mutate(minpval = min(-log10(!! rlang::sym(forout_reactive$qtlcolnames[8]))), maxpval = max(-log10(!! rlang::sym(forout_reactive$qtlcolnames[8])))) %>% dplyr::group_by(!! rlang::sym(forout_reactive$qtlcolnames[3])) %>% mutate(mean_chr = mean(pc_x)) %>% ungroup()
     }
     
     if(forout_reactive$qtl_quanttype == "pval"){
@@ -2357,24 +2357,24 @@ server <- function(input, output, session) {
 }
     
     #Filter data using correlation and q-value cut-offs, save object for arc diagram plot
-    arc_diag <- forout_reactive$table_complex %>% filter(cor > input$param_qtlprot_cor & qval < 10^(input$param_qtlprot_qval))
+    arc_diag <- forout_reactive$table_complex %>% filter(cor > isolate(input$param_qtlprot_cor) & qval < 10^(isolate(input$param_qtlprot_qval)))
     
-    if(input$protqtlplot_complexselect == "All proteins with QTLs"){
+    if(isolate(input$protqtlplot_complexselect) == "All proteins with QTLs"){
     arc_diag <- arc_diag %>% filter(varID1 %in% (forout_reactive$table_qtl_processed %>% select(!! rlang::sym(forout_reactive$qtlcolnames[4])) %>% unique %>% unlist %>% as.vector() %>% tolower) | varID2 %in% (forout_reactive$table_qtl_processed %>% select(!! rlang::sym(forout_reactive$qtlcolnames[4])) %>% unique %>% unlist %>% as.vector() %>% tolower) )
     validate(need(nrow(arc_diag)!=0, "There are no matches in the dataset. Try removing or relaxing one or more filters."))
-    } else if (input$prottype == "corum" & !(input$protqtlplot_complexselect %in% c("All proteins", "All proteins with QTLs"))){
+    } else if (isolate(input$prottype) == "corum" & !(isolate(input$protqtlplot_complexselect) %in% c("All proteins", "All proteins with QTLs"))){
     arc_diag <- arc_diag %>% filter(inCORUM == TRUE)       
-    } else if (input$prottype == "bioplex" & !(input$protqtlplot_complexselect %in% c("All proteins", "All proteins with QTLs"))){
+    } else if (isolate(input$prottype) == "bioplex" & !(isolate(input$protqtlplot_complexselect) %in% c("All proteins", "All proteins with QTLs"))){
     bioplextarget <- db_bioplex3_4pc %>% select(SymbolA, SymbolB) %>% c(.$SymbolA, .$SymbolB) %>% unlist %>% as.vector() %>% tolower
     arc_diag <- arc_diag %>% filter(varID1 %in% bioplextarget | varID2 %in% bioplextarget)      
     } 
     
     
     # add organelle filtering here based on input$select_organelle_protqtl
-    if(length(input$select_organelle_protqtl > 0)){
+    if(length(isolate(input$select_organelle_protqtl) > 0)){
       
       # Take the organelle filter and replace the string "NA" with NA
-      select_organelle <- input$select_organelle_protqtl
+      select_organelle <- isolate(input$select_organelle_protqtl)
       select_organelle[ select_organelle == "NA" ] <- NA
       
       # Create a list of proteins that should be retained
@@ -2392,28 +2392,28 @@ server <- function(input, output, session) {
     arc_diag <- arc_diag %>% group_by(ComplexID) %>% add_tally(name = "complexsize") %>% group_by(ComplexID, varIDx) %>% add_tally(name = "complexprotnum") %>% left_join(., (arc_diag %>% select(ComplexID, varIDx) %>% unique %>% group_by(ComplexID) %>% count(name = "complexprotuniq"))) %>% ungroup()
     
     ###Optional filter for single complex
-    if(input$prottype == "corum" & !(input$protqtlplot_complexselect %in% c("All complexes", "All proteins", "All proteins with QTLs"))){
-      arc_diag <- arc_diag %>% filter(ComplexName == input$protqtlplot_complexselect)
+    if(isolate(input$prottype) == "corum" & !(isolate(input$protqtlplot_complexselect) %in% c("All complexes", "All proteins", "All proteins with QTLs"))){
+      arc_diag <- arc_diag %>% filter(ComplexName == isolate(input$protqtlplot_complexselect))
     }
     
-    if(input$prottype == "bioplex" & !(input$protqtlplot_complexselect %in% c("All complexes", "All proteins", "All proteins with QTLs"))){
-      arc_bioplextarget <- db_bioplex3_4pc %>% filter(SymbolA == input$protqtlplot_complexselect | SymbolB == input$protqtlplot_complexselect) %>% select(SymbolA, SymbolB) %>% c(.$SymbolA, .$SymbolB) %>% unlist %>% as.vector() %>% tolower
+    if(isolate(input$prottype) == "bioplex" & !(isolate(input$protqtlplot_complexselect) %in% c("All complexes", "All proteins", "All proteins with QTLs"))){
+      arc_bioplextarget <- db_bioplex3_4pc %>% filter(SymbolA == isolate(input$protqtlplot_complexselect) | SymbolB == isolate(input$protqtlplot_complexselect)) %>% select(SymbolA, SymbolB) %>% c(.$SymbolA, .$SymbolB) %>% unlist %>% as.vector() %>% tolower
       arc_diag <- arc_diag %>% filter(varIDx %in% arc_bioplextarget | varIDy %in% arc_bioplextarget)
     }
     
-    if(input$prottype == "all" & !(input$protqtlplot_complexselect %in% c("All complexes", "All proteins", "All proteins with QTLs"))){
-      arc_diag <- arc_diag %>% filter(varIDx %in% input$protqtlplot_complexselect | varIDy %in% input$protqtlplot_complexselect)
+    if(isolate(input$prottype) == "all" & !(isolate(input$protqtlplot_complexselect) %in% c("All complexes", "All proteins", "All proteins with QTLs"))){
+      arc_diag <- arc_diag %>% filter(varIDx %in% isolate(input$protqtlplot_complexselect) | varIDy %in% isolate(input$protqtlplot_complexselect))
     }
     
     #The assignment of a protein location for the arc_diagram depends on the protein source used. 
     #For Corum the proteins are first ordered by complex size, then by number of connections
     #For other plots 
-    if(input$prottype == "corum"){
-      arc_loc <- arc_diag %>% dplyr::select(varIDx, ComplexID, ComplexIDName, ComplexName, complexprotuniq, complexprotnum) %>% unique %>% ungroup() %>% arrange(-complexprotuniq, -ComplexID, -complexprotnum) %>% mutate(loc.prot = ( (1:nrow(.) / nrow(.)) * 100) ) %>% select(-complexprotuniq, -complexprotnum)
+    if(isolate(input$prottype) == "corum"){
+      arc_loc <- arc_diag %>% dplyr::select(varIDx, ComplexID, ComplexName, complexprotuniq, complexprotnum) %>% unique %>% ungroup() %>% arrange(-complexprotuniq, -ComplexID, -complexprotnum) %>% mutate(loc.prot = ( (1:nrow(.) / nrow(.)) * 100) ) %>% select(-complexprotuniq, -complexprotnum)
       arc_loc <- left_join(arc_loc, arc_loc %>% group_by(ComplexID) %>% summarise(loc.complex = mean(loc.prot))) %>% ungroup()
       arc_diag <- arc_diag %>% left_join(., arc_loc, by = c("ComplexID" = "ComplexID", "varIDx" = "varIDx")) %>% left_join(., arc_loc, by = c("ComplexID" = "ComplexID", "varIDy" = "varIDx")) %>% filter(loc.prot.x < loc.prot.y)
-    } else if(input$prottype == "all" | !(input$protqtlplot_complexselect %in% c("All complexes", "All proteins", "All proteins with QTLs"))){
-      arc_loc <- bind_rows(arc_diag %>% select(varIDx) %>% `colnames<-`(c("varIDx")), arc_diag %>% select(varIDy) %>% `colnames<-`(c("varIDx"))) %>% unique %>% arrange(varIDx) %>% mutate(loc.prot = ( (1:nrow(.) / nrow(.)) * 100) ) %>% mutate(user_selection = varIDx %in% input$protqtlplot_complexselect)
+    } else if(isolate(input$prottype) == "all" | !(isolate(input$protqtlplot_complexselect) %in% c("All complexes", "All proteins", "All proteins with QTLs"))){
+      arc_loc <- bind_rows(arc_diag %>% select(varIDx) %>% `colnames<-`(c("varIDx")), arc_diag %>% select(varIDy) %>% `colnames<-`(c("varIDx"))) %>% unique %>% arrange(varIDx) %>% mutate(loc.prot = ( (1:nrow(.) / nrow(.)) * 100) ) %>% mutate(user_selection = varIDx %in% isolate(input$protqtlplot_complexselect))
       arc_diag <- arc_diag %>% left_join(., arc_loc, by = c("varIDx" = "varIDx")) %>% left_join(., arc_loc, by = c("varIDy" = "varIDx")) %>% filter(loc.prot.x < loc.prot.y)
       
     } else {
@@ -2432,18 +2432,18 @@ server <- function(input, output, session) {
     
     
     #### Filter proxies or VE depending on selected edgetype
-    if(input$edgeproxy_intersect == TRUE & length(input$edgeproxy) > 1){
+    if(isolate(input$edgeproxy_intersect) == TRUE & length(isolate(input$edgeproxy)) > 1){
       
       intersectlist = list()
       
-      if(input$edgetype == "proxy"){
-        for(i in 1:length(input$edgeproxy)){intersectlist[i] <- qtl_edges %>% filter(!! rlang::sym(forout_reactive$qtlcolnames[9]) == input$edgeproxy[i]) %>% select(VarVar) %>% unique}
-      } else if(input$edgetype == "intragenic"){
-        for(i in 1:length(input$edgeproxy)){intersectlist[i] <- qtl_edges %>% filter(CP_Intragenic_QTL == input$edgeproxy[i]) %>% select(VarVar) %>% unique}
-        } else if(input$edgetype == "ve"){
-        for(i in 1:length(input$edgeproxy)){intersectlist[i] <- qtl_edges %>% filter(CP_Variant_Effect == input$edgeproxy[i]) %>% select(VarVar) %>% unique}
+      if(isolate(input$edgetype) == "proxy"){
+        for(i in 1:length(isolate(input$edgeproxy))){intersectlist[i] <- qtl_edges %>% filter(!! rlang::sym(forout_reactive$qtlcolnames[9]) == isolate(input$edgeproxy)[i]) %>% select(VarVar) %>% unique}
+      } else if(isolate(input$edgetype) == "intragenic"){
+        for(i in 1:length(isolate(input$edgeproxy))){intersectlist[i] <- qtl_edges %>% filter(CP_Intragenic_QTL == isolate(input$edgeproxy)[i]) %>% select(VarVar) %>% unique}
+        } else if(isolate(input$edgetype) == "ve"){
+        for(i in 1:length(isolate(input$edgeproxy))){intersectlist[i] <- qtl_edges %>% filter(CP_Variant_Effect == isolate(input$edgeproxy)[i]) %>% select(VarVar) %>% unique}
       } else {
-        for(i in 1:length(input$edgeproxy)){intersectlist[i] <- qtl_edges %>% filter(CP_Variant_Impact == input$edgeproxy[i]) %>% select(VarVar) %>% unique}
+        for(i in 1:length(isolate(input$edgeproxy))){intersectlist[i] <- qtl_edges %>% filter(CP_Variant_Impact == isolate(input$edgeproxy)[i]) %>% select(VarVar) %>% unique}
       }
       
 
@@ -2454,31 +2454,31 @@ server <- function(input, output, session) {
       }
       
 
-    } else if(input$edgeproxy_intersect == FALSE){
+    } else if(isolate(input$edgeproxy_intersect) == FALSE){
 
-      if(input$edgetype == "proxy"){
-        if(isTruthy(input$edgeproxy)){qtl_edges <- qtl_edges %>% filter(!! rlang::sym(forout_reactive$qtlcolnames[9]) == input$edgeproxy)}
-      } else if(input$edgetype == "intragenic"){
-        if(isTruthy(input$edgeproxy)){qtl_edges <- qtl_edges %>% filter(CP_Intragenic_QTL == input$edgeproxy)}
-      } else if(input$edgetype == "ve"){
-        if(isTruthy(input$edgeproxy)){qtl_edges <- qtl_edges %>% filter(CP_Variant_Effect == input$edgeproxy)}
+      if(isolate(input$edgetype) == "proxy"){
+        if(isTruthy(isolate(input$edgeproxy))){qtl_edges <- qtl_edges %>% filter(!! rlang::sym(forout_reactive$qtlcolnames[9]) == isolate(input$edgeproxy))}
+      } else if(isolate(input$edgetype) == "intragenic"){
+        if(isTruthy(isolate(input$edgeproxy))){qtl_edges <- qtl_edges %>% filter(CP_Intragenic_QTL == isolate(input$edgeproxy))}
+      } else if(isolate(input$edgetype) == "ve"){
+        if(isTruthy(isolate(input$edgeproxy))){qtl_edges <- qtl_edges %>% filter(CP_Variant_Effect == isolate(input$edgeproxy))}
       } else {
-        if(isTruthy(input$edgeproxy)){qtl_edges <- qtl_edges %>% filter(CP_Variant_Impact == input$edgeproxy)}}
+        if(isTruthy(isolate(input$edgeproxy))){qtl_edges <- qtl_edges %>% filter(CP_Variant_Impact == isolate(input$edgeproxy))}}
     
     } 
     
     #Keep only QTLs intersecting with selected types
-    if(input$edgeproxy_intersect_rsid == TRUE & length(input$edgeproxy) > 1){
+    if(isolate(input$edgeproxy_intersect_rsid) == TRUE & length(isolate(input$edgeproxy)) > 1){
       intersectlist = list()
       
-      if(input$edgetype == "proxy"){
-        for(i in 1:length(input$edgeproxy)){intersectlist[i] <- qtl_edges %>% filter(!! rlang::sym(forout_reactive$qtlcolnames[9]) == input$edgeproxy[i]) %>% select(pc_x) %>% unique}
-      } else if(input$edgetype == "intragenic"){
-        for(i in 1:length(input$edgeproxy)){intersectlist[i] <- qtl_edges %>% filter(CP_Intragenic_QTL == input$edgeproxy[i]) %>% select(pc_x) %>% unique}
-      } else if(input$edgetype == "ve"){
-        for(i in 1:length(input$edgeproxy)){intersectlist[i] <- qtl_edges %>% filter(CP_Variant_Effect == input$edgeproxy[i]) %>% select(pc_x) %>% unique}
+      if(isolate(input$edgetype) == "proxy"){
+        for(i in 1:length(isolate(input$edgeproxy))){intersectlist[i] <- qtl_edges %>% filter(!! rlang::sym(forout_reactive$qtlcolnames[9]) == isolate(input$edgeproxy)[i]) %>% select(pc_x) %>% unique}
+      } else if(isolate(input$edgetype) == "intragenic"){
+        for(i in 1:length(isolate(input$edgeproxy))){intersectlist[i] <- qtl_edges %>% filter(CP_Intragenic_QTL == isolate(input$edgeproxy)[i]) %>% select(pc_x) %>% unique}
+      } else if(isolate(input$edgetype) == "ve"){
+        for(i in 1:length(isolate(input$edgeproxy))){intersectlist[i] <- qtl_edges %>% filter(CP_Variant_Effect == isolate(input$edgeproxy)[i]) %>% select(pc_x) %>% unique}
       } else {
-        for(i in 1:length(input$edgeproxy)){intersectlist[i] <- qtl_edges %>% filter(CP_Variant_Impact == input$edgeproxy[i]) %>% select(pc_x) %>% unique}
+        for(i in 1:length(isolate(input$edgeproxy))){intersectlist[i] <- qtl_edges %>% filter(CP_Variant_Impact == isolate(input$edgeproxy)[i]) %>% select(pc_x) %>% unique}
       }
       
       if(length(Reduce(intersect, intersectlist) %>% unlist) > 0){
@@ -2504,8 +2504,8 @@ server <- function(input, output, session) {
     }
     
     
-    if(!(input$protqtlplot_complexselect %in% c("All complexes", "All proteins", "All proteins with QTLs"))){
-    if(input$prottype == "all"){
+    if(!(isolate(input$protqtlplot_complexselect) %in% c("All complexes", "All proteins", "All proteins with QTLs"))){
+    if(isolate(input$prottype) == "all"){
       #use user_selection to colour selected proteins
       forout_reactive$plot_arcdiagram <- ggplot(arc_diag) + geom_curve(aes(x = loc.prot.x, y = 0, xend = loc.prot.y, yend = 0), col = "darkgray", curvature = 0.3, alpha = 0.6, size = 0.3, ncp = 50) + geom_curve(data = arc_loc, aes(x = loc.prot, y = -0.1, xend = loc.prot, yend = rep(c(-0.8, -0.7), length.out = nrow(arc_loc)), col = user_selection, alpha = user_selection, size = user_selection), curvature = 0) + scale_alpha_discrete(range = c(0.1, 0.6)) + scale_size_discrete(range = c(0.3, 1)) + annotate("text", x = arc_loc$loc.prot, y = rep(c(-0.8, -0.7), length.out = nrow(arc_loc)), label = arc_loc$varIDx, angle = 90, size = 4, hjust = 1) + geom_point(shape = 20, size = 0.3, stroke = 0.1, aes(x = loc.prot.x, y = 0)) + geom_point(shape = 20, size = 0.3, stroke = 0.1, aes(x = loc.prot.y, y = 0)) + coord_cartesian(xlim = c(0,110), ylim = c(-1,0)) + cowplot::theme_nothing() + theme(plot.margin=unit(c(0,0,0,0), "null"), panel.margin=unit(c(0,0,0,0), "null"), axis.ticks.length = unit(0, "pt")) + scale_x_continuous(expand=c(0.01,0.01)) + scale_y_continuous(expand=c(0,0)) + theme(legend.position = c(0.95, .50))
     } else {
@@ -2513,9 +2513,9 @@ server <- function(input, output, session) {
       
     }
 
-      } else if(input$protqtlplot_complexselect == c("All complexes")){
+      } else if(isolate(input$protqtlplot_complexselect) == c("All complexes")){
       
-      if(input$prottype == "bioplex"){
+      if(isolate(input$prottype) == "bioplex"){
         #Code for all complexes
         forout_reactive$plot_arcdiagram <- ggplot(arc_diag) + geom_curve(aes(x = loc.prot.x, y = 0, xend = loc.prot.y, yend = 0), col = "darkgray", curvature = 0.3, alpha = 0.6, size = 0.3, ncp = 50) + geom_curve(data = arc_loc, aes(x = loc.prot, y = -0.1, xend = loc.prot, yend = rep(c(-0.8, -0.7), length.out = nrow(arc_loc))), curvature = 0, alpha = 0.1, size = 0.3) + annotate("text", x = arc_loc$loc.prot, y = rep(c(-0.8, -0.7), length.out = nrow(arc_loc)), label = arc_loc$varIDx, angle = 90, size = 4, hjust = 1) + geom_point(shape = 20, size = 0.3, stroke = 0.1, aes(x = loc.prot.x, y = 0)) + geom_point(shape = 20, size = 0.3, stroke = 0.1, aes(x = loc.prot.y, y = 0)) + coord_cartesian(xlim = c(0,110), ylim = c(-1,0)) + cowplot::theme_nothing() + theme(plot.margin=unit(c(0,0,0,0), "null"), panel.margin=unit(c(0,0,0,0), "null"), axis.ticks.length = unit(0, "pt")) + scale_x_continuous(expand=c(0.01,0.01)) + scale_y_continuous(expand=c(0,0))  + theme(legend.position = c(0.95, .50)) + guides(color = guide_legend(title = NULL,label.position = "bottom",label.hjust = 0.5,label.vjust = 1,label.theme = element_text(angle = 90), override.aes = list(size = 2)))
         
@@ -2524,14 +2524,17 @@ server <- function(input, output, session) {
         forout_reactive$plot_arcdiagram <- ggplot(arc_diag) + 
           geom_curve(aes(x = loc.prot.x, y = 0, xend = loc.prot.y, yend = 0, col = as.factor(ComplexID)), curvature = 1, alpha = 0.8, size = 0.3, ncp = 50) + 
           geom_curve(data = arc_loc %>% distinct(ComplexID, ComplexName, loc.complex), aes(x = loc.complex, y = -0.01, xend = loc.complex, yend = -0.3), curvature = 0, alpha = 0.1, size = 0.3) + 
-          annotate("text", x = arc_loc %>% distinct(ComplexID, ComplexIDName, ComplexName, loc.complex)  %>% select(loc.complex) %>% unlist, y = -0.31, label = arc_loc %>% distinct(ComplexID, ComplexIDName, ComplexName, loc.complex)  %>% select(ComplexIDName) %>% as.matrix(), angle = 70, size = 3, hjust = 1) + 
+          annotate("text", x = arc_loc %>% distinct(ComplexID, ComplexName, loc.complex)  %>% select(loc.complex) %>% unlist, y = -0.31, label = arc_loc %>% distinct(ComplexID, ComplexName, loc.complex)  %>% select(ComplexName) %>% as.matrix(), angle = 70, size = 3, hjust = 1) + 
           geom_point(shape = 20, size = 0.3, stroke = 0.1, aes(x = loc.prot.x, y = 0, col = as.factor(ComplexID))) + geom_point(shape = 20, size = 0.3, stroke = 0.1, aes(x = loc.prot.y, y = 0, col = as.factor(ComplexID))) + theme(legend.position = "null") + coord_cartesian(xlim = c(0,110), ylim = c(-1,0)) + cowplot::theme_nothing() + theme(plot.margin=unit(c(0,0,0,0), "null"), panel.margin=unit(c(0,0,0,0), "null"), axis.ticks.length = unit(0, "pt")) + scale_x_continuous(expand=c(0.01,0.01)) + scale_y_continuous(expand=c(0,0))
         
       }
       } else {
       forout_reactive$plot_arcdiagram <- ggplot(arc_diag) + geom_curve(aes(x = loc.prot.x, y = 0, xend = loc.prot.y, yend = 0), col = "darkgray", curvature = 0.3, alpha = 0.6, size = 0.3, ncp = 50) + geom_curve(data = arc_loc, aes(x = loc.prot, y = -0.1, xend = loc.prot, yend = rep(c(-0.8, -0.7), length.out = nrow(arc_loc))), curvature = 0, alpha = 0.1, size = 0.3) + annotate("text", x = arc_loc$loc.prot, y = rep(c(-0.8, -0.7), length.out = nrow(arc_loc)), label = arc_loc$varIDx, angle = 90, size = 4, hjust = 1) + geom_point(shape = 20, size = 0.3, stroke = 0.1, aes(x = loc.prot.x, y = 0)) + geom_point(shape = 20, size = 0.3, stroke = 0.1, aes(x = loc.prot.y, y = 0)) + coord_cartesian(xlim = c(0,110), ylim = c(-1,0)) + cowplot::theme_nothing() + theme(plot.margin=unit(c(0,0,0,0), "null"), panel.margin=unit(c(0,0,0,0), "null"), axis.ticks.length = unit(0, "pt")) + scale_x_continuous(expand=c(0.01,0.01)) + scale_y_continuous(expand=c(0,0))  + theme(legend.position = c(0.95, .50)) + guides(color = guide_legend(title = NULL,label.position = "bottom",label.hjust = 0.5,label.vjust = 1,label.theme = element_text(angle = 90), override.aes = list(size = 2)))
       
-    }
+      }
+    
+    sendSweetAlert(session = session, title = "Creating SNP-Protein plots", text = "Processing completed, rendering started", type = "success")
+    
     
     updateProgressBar(session = session, id = "pb9", value = 100)
     
@@ -2732,6 +2735,7 @@ server <- function(input, output, session) {
   output$download_phenotable          <- cp_dl_table_csv(forout_reactive$table_pheno_processed, "phenotype_table.csv")
   output$download_corumcomplextable   <- cp_dl_table_csv(forout_reactive$table_complex_tally, "corum_complex_tally.csv")
   
+  # Download complex table
   output$download_complextable        <- downloadHandler(
     filename = function() { paste("protein_complex.zip") },
     
