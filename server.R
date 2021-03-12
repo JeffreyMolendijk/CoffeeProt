@@ -477,7 +477,6 @@ server <- function(input, output, session) {
       
       
       # Assigning results to reactive values and report progress to the user
-      forout_reactive$cor <- cor
       forout_reactive$table_complex <- complex
       updateProgressBar(session = session, id = "pb2", value = 100)
       
@@ -1785,19 +1784,19 @@ server <- function(input, output, session) {
     
   # analysis - histogram correlation on buttonpress ----
   observeEvent(input$summary_bttn, {
-  req(forout_reactive$cor, isolate(input$param_summary_cor))
-  forout_reactive$plot_summary_histogram_cor <- ggplot(forout_reactive$cor, aes(cor, fill = cor > isolate(input$param_summary_cor))) + geom_histogram(bins = 200) + geom_vline(xintercept = isolate(input$param_summary_cor), colour = "darkgray", linetype = "dashed")  + annotate("text", x = c(0.9), y = Inf, vjust = 2.5, hjust = 1, label = c(paste0("Correlated protein pairs: ", (forout_reactive$cor$cor > isolate(input$param_summary_cor)) %>% sum %>% formatC(., format = "e", digits = 2), "\n Not correlated: ", (forout_reactive$cor$cor < isolate(input$param_summary_cor)) %>% sum %>% formatC(., format = "e", digits = 2)))) + theme(legend.position = c(.95, .30), legend.justification = c("right", "top"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + coord_cartesian(expand = FALSE) + labs(fill = "Correlation")  + scale_fill_manual(breaks = c(TRUE, FALSE),values = c("#094183","darkgray"))
+  req(forout_reactive$table_complex, isolate(input$param_summary_cor))
+  forout_reactive$plot_summary_histogram_cor <- ggplot(forout_reactive$table_complex, aes(cor, fill = cor > isolate(input$param_summary_cor))) + geom_histogram(bins = 200) + geom_vline(xintercept = isolate(input$param_summary_cor), colour = "darkgray", linetype = "dashed")  + annotate("text", x = c(0.9), y = Inf, vjust = 2.5, hjust = 1, label = c(paste0("Correlated protein pairs: ", (forout_reactive$table_complex$cor > isolate(input$param_summary_cor)) %>% sum %>% formatC(., format = "e", digits = 2), "\n Not correlated: ", (forout_reactive$table_complex$cor < isolate(input$param_summary_cor)) %>% sum %>% formatC(., format = "e", digits = 2)))) + theme(legend.position = c(.95, .30), legend.justification = c("right", "top"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + coord_cartesian(expand = FALSE) + labs(fill = "Correlation")  + scale_fill_manual(breaks = c(TRUE, FALSE),values = c("#094183","darkgray"))
   })
     
  
   # analysis - histogram qval on buttonpress ----
   observeEvent(input$summary_bttn, {
-    req(forout_reactive$cor,  isolate(input$param_summary_cor))
-    p1 <- ggplot(forout_reactive$cor, aes(abs(qval), fill = abs(qval) < isolate(10^(input$param_summary_qval)))) + geom_histogram(bins = 300) + theme(legend.position = c(.95, .30), legend.justification = c("right", "top"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+    req(forout_reactive$table_complex,  isolate(input$param_summary_cor))
+    p1 <- ggplot(forout_reactive$table_complex, aes(abs(qval), fill = abs(qval) < isolate(10^(input$param_summary_qval)))) + geom_histogram(bins = 300) + theme(legend.position = c(.95, .30), legend.justification = c("right", "top"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                                                                                                                                   panel.background = element_blank(), axis.line = element_line(colour = "black")) + coord_cartesian(expand = FALSE) + labs(fill = "Correlation")  + scale_fill_manual(breaks = c(TRUE, FALSE),values = c("#094183","darkgray"))
     
     
-    p2 <- ggplot(forout_reactive$cor %>% filter(qval < 0.005), aes(abs(qval), fill = abs(qval) < isolate(10^(input$param_summary_qval)))) + geom_histogram(bins = 100) + annotate("text", x = c(0.0049), y = Inf, vjust = 2.5, hjust = 1, label = c(paste0("Correlated protein pairs: ", (abs(forout_reactive$cor$qval) < isolate(10^(input$param_summary_qval))) %>% sum %>% formatC(., format = "e", digits = 2), "\n Not correlated: ", (abs(forout_reactive$cor$qval) > isolate(10^(input$param_summary_qval))) %>% sum %>% formatC(., format = "e", digits = 2)))) + theme(axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position = "none", legend.box.just = "right", panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+    p2 <- ggplot(forout_reactive$table_complex %>% filter(qval < 0.005), aes(abs(qval), fill = abs(qval) < isolate(10^(input$param_summary_qval)))) + geom_histogram(bins = 100) + annotate("text", x = c(0.0049), y = Inf, vjust = 2.5, hjust = 1, label = c(paste0("Correlated protein pairs: ", (abs(forout_reactive$table_complex$qval) < isolate(10^(input$param_summary_qval))) %>% sum %>% formatC(., format = "e", digits = 2), "\n Not correlated: ", (abs(forout_reactive$table_complex$qval) > isolate(10^(input$param_summary_qval))) %>% sum %>% formatC(., format = "e", digits = 2)))) + theme(axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position = "none", legend.box.just = "right", panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           panel.background = element_blank(), axis.line = element_line(colour = "black")) + coord_cartesian(expand = FALSE)  + scale_fill_manual(breaks = c(TRUE, FALSE),values = c("#094183","darkgray"))
     layout <- c(area(t = 1, l = 1, b = 6, r = 6), area(t = 1, l = 3, b = 3, r = 6))
     
@@ -1809,10 +1808,10 @@ server <- function(input, output, session) {
   # Analysis - paircount ----
   observeEvent(input$summary_bttn, {
     
-    req(forout_reactive$cor, input$param_summary_cor, input$param_summary_qval)
+    req(forout_reactive$table_complex, input$param_summary_cor, input$param_summary_qval)
     
     #Interaction pairs of correlated proteins > This should be done before left-join with corum as it introduces duplicates
-    paircount <- forout_reactive$cor %>% filter(qval < 10^(input$param_summary_qval)) %>% filter(cor > input$param_summary_cor) %>% dplyr::distinct(., VarVar) %>% tidyr::separate(., VarVar, sep = "_", into = c("v1","v2")) %>% as.matrix() %>% as.vector() %>% table() %>% reshape2::melt() %>% `colnames<-`(c("ID", "value"))
+    paircount <- forout_reactive$table_complex %>% filter(qval < 10^(input$param_summary_qval)) %>% filter(cor > input$param_summary_cor) %>% dplyr::distinct(., VarVar) %>% tidyr::separate(., VarVar, sep = "_", into = c("v1","v2")) %>% as.matrix() %>% as.vector() %>% table() %>% reshape2::melt() %>% `colnames<-`(c("ID", "value"))
     
     if(nrow(paircount) == 0){sendSweetAlert(session = session, title = "Error, dataset contains 0 rows after filtering", text = "Please select less stringent cut-offs", type = "error")}
     validate(need(nrow(paircount)!=0, "There are no matches in the dataset. Try removing or relaxing one or more filters."))
