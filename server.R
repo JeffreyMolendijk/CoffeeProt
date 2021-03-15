@@ -317,6 +317,8 @@ server <- function(input, output, session) {
       
       db_hpa <- db_hpa %>% mutate(CP_loc = sapply(strsplit(db_hpa$CP_loc, ";"), function(x) paste(unique(x), collapse = ";"))) %>% select(-ENSG, -Uniprot, -`HyperLOPIT location`, -Reliability) %>% rename("HPA_IF_protein_location" = `IF main protein location`)
 
+      db_hpa_locoverlap <<- db_hpa %>% select(3) %>% mutate(loc2 = CP_loc) %>% `colnames<-`(c("loc1", "loc2")) %>% distinct %>% tidyr::expand(loc1 = .$loc1, loc2 = .$loc2) %>% mutate(overlap.loc = mapply(function(x, y) paste(intersect(x, y), collapse=";"), strsplit(.$loc1, ";"), strsplit(.$loc2, ";")) ) 
+      
       # Confirm that the protein data and protNA are present
       req(forout_reactive$protdf, input$protNA)
 
@@ -355,7 +357,6 @@ server <- function(input, output, session) {
       
       # Add drug-gene interaction database annotations by joining on gene names
       df <- left_join(df %>% mutate(ID = tolower(.$ID)), db_hpa, by = c("ID" = "Gene")) %>% mutate(inDGIdb = tolower(ID) %in% tolower(db_dgidb$gene_name)) %>% select(varID, ID, HPA_IF_protein_location:CP_loc, inDGIdb, everything())
-      
       
       # If manual annotations have been uploaded, add them to df here... (Currently in development)
       if(isTruthy(input$protfile_manual)){
@@ -473,8 +474,9 @@ server <- function(input, output, session) {
       
       # Check whether the two correlated proteins share a subcellular localization and report the overlap (slow computation)
       complex <- complex %>% left_join(., forout_reactive$protanno %>% dplyr::select(ID, CP_loc) %>% `colnames<-`(c("ID", "loc1")), by = c("varID1" = "ID")) %>% 
-        left_join(., forout_reactive$protanno %>% dplyr::select(ID, CP_loc) %>% `colnames<-`(c("ID", "loc2")), by = c("varID2" = "ID")) %>% mutate(overlap.loc = mapply(function(x, y) paste(intersect(x, y), collapse=";"), strsplit(.$loc1, ";"), strsplit(.$loc2, ";")) ) %>% mutate(overlap.loc = sub("NA", "", .$overlap.loc)) %>% mutate(share.loc = (overlap.loc != ""))
+        left_join(., forout_reactive$protanno %>% dplyr::select(ID, CP_loc) %>% `colnames<-`(c("ID", "loc2")), by = c("varID2" = "ID")) 
       
+      complex <- left_join(complex, db_hpa_locoverlap) %>% mutate(overlap.loc = tidyr::replace_na(overlap.loc, "")) %>% mutate(share.loc = (overlap.loc != ""))
       
       # Assigning results to reactive values and report progress to the user
       forout_reactive$table_complex <- complex
