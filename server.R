@@ -242,15 +242,15 @@ server <- function(input, output, session) {
     
     if(is.null(forout_reactive$plot_sensitivity) == TRUE){
       box(title = "Correlation sensitivity analysis", status = "primary", solidHeader = FALSE, width = 12, 
-          HTML("A sensitivity analysis will indicate which p-value and correlation coefficient cut-offs affect the percentage of protein-protein pairs found in the reference databases. Clicking the 'Perform sensitivity analysis!' will perform the analysis on many combinations of correlation coefficients and q-values. <b>This analysis takes about 2-3 minutes</b>."), br(),
+          HTML("A sensitivity analysis will indicate which p-value and correlation coefficient cut-offs affect the percentage of correlated pairs found in the reference databases. Clicking the 'Perform sensitivity analysis!' will perform the analysis on many combinations of correlation coefficients and q-values. <b>This analysis takes about 2-3 minutes</b>."), br(),
           actionButton(inputId = "sensitivity_analysis", label = "Perform sensitivity analysis!"))
     } else {
       box(title = "Correlation sensitivity analysis", status = "primary", solidHeader = FALSE, width = 12, 
-          HTML("A sensitivity analysis will indicate which p-value and correlation coefficient cut-offs affect the percentage of protein-protein pairs found in the reference databases. Clicking the 'Perform sensitivity analysis!' will perform the analysis on many combinations of correlation coefficients and q-values. <b>This analysis takes about 2-3 minutes</b>."), br(),
+          HTML("A sensitivity analysis will indicate which p-value and correlation coefficient cut-offs affect the percentage of correlated pairs found in the reference databases. Clicking the 'Perform sensitivity analysis!' will perform the analysis on many combinations of correlation coefficients and q-values. <b>This analysis takes about 2-3 minutes</b>."), br(),
           plotOutput("sensitivityplot"),
           HTML(paste("<b>", "Figure: Correlation sensitivity analysis. ", "</b>",
-                     "<em>", "Combinations of correlation coefficients and q-values input parameters are tested to determine the effect on the protein-protein pair enrichment in the database analyses. 
-        The colours and numbers indicate the percentage of protein pairs found in that database. Plots are made for 3 databases, for the 'correlated' and 'non-correlated' pairs.", "</em>")), br(),
+                     "<em>", "Combinations of correlation coefficients and q-values input parameters are tested to determine the effect on the correlated pair enrichment in the database analyses. 
+        The colours and numbers indicate the percentage of correlated pairs found in that database. Plots are made for 3 databases, for the 'correlated' and 'non-correlated' pairs.", "</em>")), br(),
           actionButton(inputId = "sensitivity_analysis", label = "Perform sensitivity analysis!"))
     }
   })
@@ -1211,14 +1211,14 @@ server <- function(input, output, session) {
 
   # Analysis - select_proteinComplex - renderUI_protcomplex ----
   output$protqtlplot_ui1 <- renderUI({
-    req(forout_reactive$table_complex, forout_reactive$table_qtl_processed)
+    req(forout_reactive$table_complex, forout_reactive$table_qtl_processed, db_hpa_locoverlap)
     
     maxpval <- forout_reactive$table_complex[[ "pval" ]] %>% -(log10(.)) %>% .[is.finite(.)] %>% max() %>% floor()
     
       tagList(sliderInput("param_qtlprot_qval", "q-value cut-off (-log10 scale)", min = -maxpval, max = 0, value = 0, step = 1),
               sliderInput(inputId = "param_qtlprot_cor", "Correlation cut-off", min = -1, max = 1, value = 0.5, step = 0.01),
               selectInput("protqtlplot_chrselect", "Select Chromosome", (c("All Chromosomes", forout_reactive$table_qtl_processed %>% arrange(!! rlang::sym(forout_reactive$qtlcolnames[3])) %>% select(!! rlang::sym(forout_reactive$qtlcolnames[3])) %>% unique %>% unlist %>% as.vector())), selected = "All Chromosomes", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL),
-              selectInput("select_organelle_protqtl", "Select organelles to include", choices = c(forout_reactive$table_complex %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = FALSE, na.last = TRUE)), selected = c(forout_reactive$table_complex %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = TRUE, na.last = TRUE)), multiple = TRUE, selectize = TRUE, width = NULL, size = NULL),
+              selectInput("select_organelle_protqtl", "Select organelles to include", choices = c(db_hpa_locoverlap %>% distinct() %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = FALSE, na.last = TRUE), NA), selected = c(db_hpa_locoverlap %>% distinct() %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = TRUE, na.last = TRUE), NA), multiple = TRUE, selectize = TRUE, width = NULL, size = NULL),
               selectInput(inputId = "prottype", label = "Selecting protein source", choices = c('CORUM' = "corum", 'BioPlex 3.0' = "bioplex", "All proteins with QTL" = "protwqtl", "All / individual proteins" = "all"), selected = "CORUM", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL)
       
       )  
@@ -1409,7 +1409,7 @@ server <- function(input, output, session) {
   
   # Analysis - ui_param_network ----
   output$ui_param_network1 <- renderUI({
-    req(forout_reactive$table_complex)
+    req(forout_reactive$table_complex, db_hpa_locoverlap)
     
     maxpval <- forout_reactive$table_complex[[ "pval" ]] %>% -(log10(.)) %>% .[is.finite(.)] %>% max() %>% floor()
     
@@ -1417,14 +1417,14 @@ server <- function(input, output, session) {
       tagList(
         sliderInput("param_network_qval", "q-value cut-off (-log10 scale)", min = -maxpval, max = 0, value = 0, step = 1),
         sliderInput(inputId = "param_network_cor", "Correlation cut-off", min = -1, max = 1, value = 0.5, step = 0.01),
-        selectInput("select_organelle", "Select organelles to include", choices = c(forout_reactive$table_complex %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = FALSE, na.last = TRUE)), selected = c(forout_reactive$table_complex %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = TRUE, na.last = TRUE)), multiple = TRUE, selectize = TRUE, width = NULL, size = NULL),
+        selectInput("select_organelle", "Select organelles to include", choices = c(db_hpa_locoverlap %>% distinct() %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = FALSE, na.last = TRUE), NA), selected = c(db_hpa_locoverlap %>% distinct() %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = TRUE, na.last = TRUE), NA), multiple = TRUE, selectize = TRUE, width = NULL, size = NULL),
         selectInput(inputId = "prottype_network", label = "Selecting protein source", choices = c('CORUM' = "corum", 'BioPlex 3.0' = "bioplex", "All proteins" = "all"), selected = "CORUM", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL)
       )
     } else {
       tagList(
         sliderInput("param_network_qval", "q-value cut-off (-log10 scale)", min = -maxpval, max = 0, value = 0, step = 1),
         sliderInput(inputId = "param_network_cor", "Correlation cut-off", min = -1, max = 1, value = 0.5, step = 0.01),
-        selectInput("select_organelle", "Select organelles to include", choices = c(forout_reactive$table_complex %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = FALSE, na.last = TRUE)), selected = c(forout_reactive$table_complex %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = TRUE, na.last = TRUE)), multiple = TRUE, selectize = TRUE, width = NULL, size = NULL),
+        selectInput("select_organelle", "Select organelles to include", choices = c(db_hpa_locoverlap %>% distinct() %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = FALSE, na.last = TRUE), NA), selected = c(db_hpa_locoverlap %>% distinct() %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = TRUE, na.last = TRUE), NA), multiple = TRUE, selectize = TRUE, width = NULL, size = NULL),
         selectInput(inputId = "prottype_network", label = "Selecting protein source", choices = c('CORUM' = "corum", 'BioPlex 3.0' = "bioplex", "All proteins with QTL" = "protwqtl", "All proteins" = "all"), selected = "CORUM", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL)
       )
     }
@@ -1786,42 +1786,45 @@ server <- function(input, output, session) {
   
 
     
-  # analysis - histogram correlation on buttonpress ----
-  observeEvent(input$summary_bttn, {
-  req(forout_reactive$table_complex, isolate(input$param_summary_cor))
-  forout_reactive$plot_summary_histogram_cor <- ggplot(forout_reactive$table_complex, aes(cor, fill = cor > isolate(input$param_summary_cor))) + geom_histogram(bins = 200) + geom_vline(xintercept = isolate(input$param_summary_cor), colour = "darkgray", linetype = "dashed")  + annotate("text", x = c(0.9), y = Inf, vjust = 2.5, hjust = 1, label = c(paste0("Correlated protein pairs: ", (forout_reactive$table_complex$cor > isolate(input$param_summary_cor)) %>% sum %>% formatC(., format = "e", digits = 2), "\n Not correlated: ", (forout_reactive$table_complex$cor < isolate(input$param_summary_cor)) %>% sum %>% formatC(., format = "e", digits = 2)))) + theme(legend.position = c(.95, .30), legend.justification = c("right", "top"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + coord_cartesian(expand = FALSE) + labs(fill = "Correlation")  + scale_fill_manual(breaks = c(TRUE, FALSE),values = c("#094183","darkgray"))
-  })
+
     
- 
   # analysis - histogram qval on buttonpress ----
   observeEvent(input$summary_bttn, {
     req(forout_reactive$table_complex,  isolate(input$param_summary_cor))
+    
+    sendSweetAlert(session = session, title = "Creating summary plots", text = "", type = "info", btn_labels = NA, closeOnClickOutside = FALSE)
+    message("Action: Creating summary plot")
+    
     p1 <- ggplot(forout_reactive$table_complex, aes(abs(qval), fill = abs(qval) < isolate(10^(input$param_summary_qval)))) + geom_histogram(bins = 300) + theme(legend.position = c(.95, .30), legend.justification = c("right", "top"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                                                                                                                                   panel.background = element_blank(), axis.line = element_line(colour = "black")) + coord_cartesian(expand = FALSE) + labs(fill = "Correlation")  + scale_fill_manual(breaks = c(TRUE, FALSE),values = c("#094183","darkgray"))
     
     
-    p2 <- ggplot(forout_reactive$table_complex %>% filter(qval < 0.005), aes(abs(qval), fill = abs(qval) < isolate(10^(input$param_summary_qval)))) + geom_histogram(bins = 100) + annotate("text", x = c(0.0049), y = Inf, vjust = 2.5, hjust = 1, label = c(paste0("Correlated protein pairs: ", (abs(forout_reactive$table_complex$qval) < isolate(10^(input$param_summary_qval))) %>% sum %>% formatC(., format = "e", digits = 2), "\n Not correlated: ", (abs(forout_reactive$table_complex$qval) > isolate(10^(input$param_summary_qval))) %>% sum %>% formatC(., format = "e", digits = 2)))) + theme(axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position = "none", legend.box.just = "right", panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          panel.background = element_blank(), axis.line = element_line(colour = "black")) + coord_cartesian(expand = FALSE)  + scale_fill_manual(breaks = c(TRUE, FALSE),values = c("#094183","darkgray"))
+    p2 <- ggplot(forout_reactive$table_complex %>% filter(qval < 0.005), aes(abs(qval), fill = abs(qval) < isolate(10^(input$param_summary_qval)))) + geom_histogram(bins = 100) + annotate("text", x = c(0.0049), y = Inf, vjust = 2.5, hjust = 1, label = c(paste0("Correlated pairs: ", (abs(forout_reactive$table_complex$qval) < isolate(10^(input$param_summary_qval))) %>% sum %>% formatC(., format = "e", digits = 2), "\n Not correlated: ", (abs(forout_reactive$table_complex$qval) > isolate(10^(input$param_summary_qval))) %>% sum %>% formatC(., format = "e", digits = 2)))) + theme(axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position = "none", legend.box.just = "right", panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + coord_cartesian(expand = FALSE)  + scale_fill_manual(breaks = c(TRUE, FALSE),values = c("#094183","darkgray"))
     layout <- c(area(t = 1, l = 1, b = 6, r = 6), area(t = 1, l = 3, b = 3, r = 6))
     
+    # Correlation q-value histogram
     forout_reactive$plot_summary_histogram_qval <- p1 + p2 + plot_layout(design = layout)
-  })
-  
-
-  
-  # Analysis - paircount ----
-  observeEvent(input$summary_bttn, {
     
-    req(forout_reactive$table_complex, input$param_summary_cor, input$param_summary_qval)
+    
+    p1 <- ggplot(forout_reactive$table_complex, aes(abs(pval))) + geom_histogram(bins = 300) + theme(legend.position = c(.95, .30), legend.justification = c("right", "top"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + coord_cartesian(expand = FALSE) + labs(fill = "Correlation")
+    
+    p2 <- ggplot(forout_reactive$table_complex %>% filter(pval < 0.005), aes(abs(pval))) + geom_histogram(bins = 100)  + theme(axis.title.x = element_blank(), axis.title.y = element_blank(), legend.position = "none", legend.box.just = "right", panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + coord_cartesian(expand = FALSE)  + scale_fill_manual(breaks = c(TRUE, FALSE),values = c("#094183","darkgray"))
+    layout <- c(area(t = 1, l = 1, b = 6, r = 6), area(t = 1, l = 3, b = 3, r = 6))
+    
+    # Correlation p-value histogram
+    forout_reactive$plot_summary_histogram_pval <- p1 + p2 + plot_layout(design = layout)
+    
+    # Correlation coefficient histogram
+    forout_reactive$plot_summary_histogram_cor <- ggplot(forout_reactive$table_complex, aes(cor, fill = cor > isolate(input$param_summary_cor))) + geom_histogram(bins = 200) + geom_vline(xintercept = isolate(input$param_summary_cor), colour = "darkgray", linetype = "dashed")  + annotate("text", x = c(0.9), y = Inf, vjust = 2.5, hjust = 1, label = c(paste0("Correlated pairs: ", (forout_reactive$table_complex$cor > isolate(input$param_summary_cor)) %>% sum %>% formatC(., format = "e", digits = 2), "\n Not correlated: ", (forout_reactive$table_complex$cor < isolate(input$param_summary_cor)) %>% sum %>% formatC(., format = "e", digits = 2)))) + theme(legend.position = c(.95, .30), legend.justification = c("right", "top"), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + coord_cartesian(expand = FALSE) + labs(fill = "Correlation")  + scale_fill_manual(breaks = c(TRUE, FALSE),values = c("#094183","darkgray"))
+    
+    
+    
     
     #Interaction pairs of correlated proteins > This should be done before left-join with corum as it introduces duplicates
     paircount <- forout_reactive$table_complex %>% filter(qval < 10^(input$param_summary_qval)) %>% filter(cor > input$param_summary_cor) %>% dplyr::distinct(., VarVar) %>% tidyr::separate(., VarVar, sep = "_", into = c("v1","v2")) %>% as.matrix() %>% as.vector() %>% table() %>% reshape2::melt() %>% `colnames<-`(c("ID", "value"))
     
     if(nrow(paircount) == 0){sendSweetAlert(session = session, title = "Error, dataset contains 0 rows after filtering", text = "Please select less stringent cut-offs", type = "error")}
     validate(need(nrow(paircount)!=0, "There are no matches in the dataset. Try removing or relaxing one or more filters."))
-    
-    sendSweetAlert(session = session, title = "Creating summary plots", text = "", type = "success")
-    message("Action: Creating summary plot")
     
     
     paircount <- forout_reactive$protanno %>% dplyr::select(varID, ID) %>% left_join(., paircount, by = c("ID" = "ID"))
@@ -1840,11 +1843,18 @@ server <- function(input, output, session) {
     forout_reactive$plot_summary_paircount <- ggplot(paircount, aes(y = paircount_bin)) + geom_histogram(stat = "count", width = 0.6, fill = "darkgray") + 
       geom_text(stat = "count" ,aes(label = paircount_bin), hjust = -0.5, position = position_dodge(width = 1)) + 
       theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.ticks.y = element_blank(), axis.text.y = element_blank()) + 
-      labs(x = "", y = "Co-regulation partners per protein")
+      labs(x = "", y = "Co-regulation partners per protein/transcript")
+    
+    
+    sendSweetAlert(session = session, title = "Summary plots created", text = "Rendering now...", type = "success")
     
     updateProgressBar(session = session, id = "pb5", value = 100)
-  })    
+    
+  })
   
+
+  
+
 
   # Analysis - databases ----
   observeEvent(input$database_bttn, {
@@ -1878,7 +1888,7 @@ server <- function(input, output, session) {
     chisq_annotation <- (paste0("p-value: ",chisq_result$p.value %>% formatC(., format = "e", digits = 2),"  |  fold change: ", ((chisq[1,1] / chisq[2,1]) / (chisq[1,2] / chisq[2,2])) %>% round(., digits = 1)))
     
     chisqplot <- data.frame( c("TRUE", "FALSE"), c((chisq[1,1] / chisq[2,1]) * 100, (chisq[1,2] / chisq[2,2]) * 100)) %>% `colnames<-`(c("Correlation", "value"))
-    forout_reactive$plot_database_inCORUM <- ggplot(chisqplot, aes(x = Correlation, y = value)) + geom_bar(stat = "identity", fill = "darkgray", width = 0.6) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + labs(x = "Co-regulated", y = "Protein pairs found in CORUM (%)") + ggpubr::stat_pvalue_manual(data.frame("FALSE", "TRUE",chisq_annotation) %>% `colnames<-`(c("group1", "group2", "p")), y.position = max(chisqplot$value) * 1.03, tip.length = 0)
+    forout_reactive$plot_database_inCORUM <- ggplot(chisqplot, aes(x = Correlation, y = value)) + geom_bar(stat = "identity", fill = "darkgray", width = 0.6) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + labs(x = "Co-regulated", y = "Correlated pairs found in CORUM (%)") + ggpubr::stat_pvalue_manual(data.frame("FALSE", "TRUE",chisq_annotation) %>% `colnames<-`(c("group1", "group2", "p")), y.position = max(chisqplot$value) * 1.03, tip.length = 0)
     
     # Analysis - inBioplex ----
     chisq <- matrix(c(df_filter %>% filter(correlated == TRUE & inBioplex == TRUE) %>% nrow(),
@@ -1895,7 +1905,7 @@ server <- function(input, output, session) {
     
     chisqplot <- data.frame( c("TRUE", "FALSE"), c((chisq[1,1] / chisq[2,1]) * 100, (chisq[1,2] / chisq[2,2]) * 100)) %>% `colnames<-`(c("Correlation", "value"))
     
-    forout_reactive$plot_database_inBioplex <- ggplot(chisqplot, aes(x = Correlation, y = value)) + geom_bar(stat = "identity", fill = "darkgray", width = 0.6) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + labs(x = "Co-regulated", y = "Protein pairs found in BioPlex 3.0 (%)") + ggpubr::stat_pvalue_manual(data.frame("FALSE", "TRUE",chisq_annotation) %>% `colnames<-`(c("group1", "group2", "p")), y.position = max(chisqplot$value) * 1.03, tip.length = 0)
+    forout_reactive$plot_database_inBioplex <- ggplot(chisqplot, aes(x = Correlation, y = value)) + geom_bar(stat = "identity", fill = "darkgray", width = 0.6) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + labs(x = "Co-regulated", y = "Correlated pairs found in BioPlex 3.0 (%)") + ggpubr::stat_pvalue_manual(data.frame("FALSE", "TRUE",chisq_annotation) %>% `colnames<-`(c("group1", "group2", "p")), y.position = max(chisqplot$value) * 1.03, tip.length = 0)
     
     # Analysis - shareloc ----
     chisq <- matrix(c(df_filter %>% filter(correlated == TRUE & share.loc == TRUE) %>% nrow(),
@@ -1913,7 +1923,7 @@ server <- function(input, output, session) {
     
     chisqplot <- data.frame( c("TRUE", "FALSE"), c((chisq[1,1] / chisq[2,1]) * 100, (chisq[1,2] / chisq[2,2]) * 100)) %>% `colnames<-`(c("Correlation", "value"))
     
-    forout_reactive$plot_database_shareloc <- ggplot(chisqplot, aes(x = Correlation, y = value)) + geom_bar(stat = "identity", fill = "darkgray", width = 0.6) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + labs(x = "Co-regulated", y = "Protein pairs with shared localization (%)") + ggpubr::stat_pvalue_manual(data.frame("FALSE", "TRUE",chisq_annotation) %>% `colnames<-`(c("group1", "group2", "p")), y.position = max(chisqplot$value) * 1.03, tip.length = 0)
+    forout_reactive$plot_database_shareloc <- ggplot(chisqplot, aes(x = Correlation, y = value)) + geom_bar(stat = "identity", fill = "darkgray", width = 0.6) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + labs(x = "Co-regulated", y = "Correlated pairs with shared localization (%)") + ggpubr::stat_pvalue_manual(data.frame("FALSE", "TRUE",chisq_annotation) %>% `colnames<-`(c("group1", "group2", "p")), y.position = max(chisqplot$value) * 1.03, tip.length = 0)
     
     #StringDB linkplot
     forout_reactive$plot_database_stringdb <- ggplot(data = forout_reactive$table_complex, aes(x = cor, y = linkscore)) + geom_smooth(method = "gam") + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black")) + labs(x = "Correlation", y = "STRINGdb Linkscore") + scale_fill_gradient(low="white",high="darkblue")
@@ -1953,6 +1963,9 @@ server <- function(input, output, session) {
   output$histogramqval <- renderPlot( {
     req(forout_reactive$plot_summary_histogram_qval)
     forout_reactive$plot_summary_histogram_qval})  
+  output$histogrampval <- renderPlot( {
+    req(forout_reactive$plot_summary_histogram_pval)
+    forout_reactive$plot_summary_histogram_pval})  
   output$histogramcor <- renderPlot( {
     req(forout_reactive$plot_summary_histogram_cor)
     forout_reactive$plot_summary_histogram_cor}) 
@@ -1966,9 +1979,10 @@ server <- function(input, output, session) {
     req(forout_reactive$plot_summary_histogram_qval, forout_reactive$plot_summary_histogram_cor, forout_reactive$plot_summary_paircount)
     
     tabBox(title = "Summary plots", width = 12,
-           tabPanel("Correlation histogram", plotOutput("histogramcor") %>% withSpinner(), HTML(paste("<b>", "Figure: Co-regulated protein pairs. ", "</b>","<em>", "The number of co-regulated protein pairs after filtering for user-specified correlation coefficient cut-offs. The number of protein pairs that meets the criteria is displayed.", "</em>")) ),
-           tabPanel("q-value histogram", plotOutput("histogramqval") %>% withSpinner(), HTML(paste("<b>", "Figure: Co-regulated protein pairs. ", "</b>","<em>", "The number of co-regulated protein pairs after filtering for user-specified q-value cut-offs. The number of protein pairs that meets the criteria is displayed.", "</em>")) ),
-           tabPanel("Protein partners", plotOutput("paircount") %>% withSpinner(), HTML(paste("<b>", "Figure: Co-regulation partners per protein. ", "</b>","<em>", "The number of co-regulation partners per proteins has been determined based on the user-specified correlation coefficient and q-value cut-offs. The data is binned to group proteins with 0, 1-5, 6-20, 21-50, 51-100 and >100 partners.", "</em>")) ))
+           tabPanel("Correlation histogram", plotOutput("histogramcor") %>% withSpinner(), HTML(paste("<b>", "Figure: Co-regulated protein/transcript pairs. ", "</b>","<em>", "The number of co-regulated pairs after filtering for user-specified correlation coefficient cut-offs. The number of protein/transcript pairs that meets the criteria is displayed.", "</em>")) ),
+           tabPanel("q-value histogram", plotOutput("histogramqval") %>% withSpinner(), HTML(paste("<b>", "Figure: Co-regulated protein/transcript pairs. ", "</b>","<em>", "The number of co-regulated pairs after filtering for user-specified q-value cut-offs. The number of protein/transcript pairs that meets the criteria is displayed.", "</em>")) ),
+           tabPanel("p-value histogram", plotOutput("histogrampval") %>% withSpinner(), HTML(paste("<b>", "Figure: Co-regulated protein/transcript pairs. ", "</b>","<em>", "The number of co-regulated pairs after filtering for user-specified p-value cut-offs. The number of protein/transcript pairs that meets the criteria is displayed.", "</em>")) ),
+           tabPanel("Correlated partners", plotOutput("paircount") %>% withSpinner(), HTML(paste("<b>", "Figure: Co-regulation partners per protein/transcript ", "</b>","<em>", "The number of co-regulation partners per protein/transcript has been determined based on the user-specified correlation coefficient and q-value cut-offs. The data is binned to group proteins/transcripts with 0, 1-5, 6-20, 21-50, 51-100 and >100 partners.", "</em>")) ))
   })
   
   output$resultbox_db_ui <- renderUI({
