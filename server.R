@@ -63,7 +63,7 @@ server <- function(input, output, session) {
   # Enable plot download if plots are present
   observe({
     if(length((c(names(forout_reactive) %>% grep("^plot_", ., value = TRUE) %>% sort() ))) > 0) {
-      Sys.sleep(1)
+      
       # enable the download button
       shinyjs::enable("download_plot")
       shinyjs::enable("download_plot_zip")
@@ -74,7 +74,7 @@ server <- function(input, output, session) {
   # Enable table download if tables are present
   observe({
     if(length((c(names(forout_reactive) %>% grep("^table_", ., value = TRUE) %>% sort() ))) > 0) {
-      Sys.sleep(1)
+
       # enable the download button
       shinyjs::enable("download_table_zip")
 
@@ -84,7 +84,7 @@ server <- function(input, output, session) {
   # Disable download_circos, but enable if circos has been processed
   observe({
     if(length((c(names(forout_reactive) %>% grep("^cp_circos$", ., value = TRUE) %>% sort() ))) == 0) {
-      Sys.sleep(1)
+
       # enable the download button
       shinyjs::disable("download_circos")
       
@@ -1418,14 +1418,14 @@ server <- function(input, output, session) {
         sliderInput("param_network_qval", "q-value cut-off (-log10 scale)", min = -maxpval, max = 0, value = 0, step = 1),
         sliderInput(inputId = "param_network_cor", "Correlation cut-off", min = -1, max = 1, value = 0.5, step = 0.01),
         selectInput("select_organelle", "Select organelles to include", choices = c(db_hpa_locoverlap %>% distinct() %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = FALSE, na.last = TRUE), NA), selected = c(db_hpa_locoverlap %>% distinct() %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = TRUE, na.last = TRUE), NA), multiple = TRUE, selectize = TRUE, width = NULL, size = NULL),
-        selectInput(inputId = "prottype_network", label = "Selecting protein source", choices = c('CORUM' = "corum", 'BioPlex 3.0' = "bioplex", "All proteins" = "all"), selected = "CORUM", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL)
+        selectInput(inputId = "prottype_network", label = "Selecting protein source", choices = c('CORUM' = "corum", 'BioPlex 3.0' = "bioplex", "All / individual proteins" = "all"), selected = "CORUM", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL)
       )
     } else {
       tagList(
         sliderInput("param_network_qval", "q-value cut-off (-log10 scale)", min = -maxpval, max = 0, value = 0, step = 1),
         sliderInput(inputId = "param_network_cor", "Correlation cut-off", min = -1, max = 1, value = 0.5, step = 0.01),
         selectInput("select_organelle", "Select organelles to include", choices = c(db_hpa_locoverlap %>% distinct() %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = FALSE, na.last = TRUE), NA), selected = c(db_hpa_locoverlap %>% distinct() %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = TRUE, na.last = TRUE), NA), multiple = TRUE, selectize = TRUE, width = NULL, size = NULL),
-        selectInput(inputId = "prottype_network", label = "Selecting protein source", choices = c('CORUM' = "corum", 'BioPlex 3.0' = "bioplex", "All proteins with QTL" = "protwqtl", "All proteins" = "all"), selected = "CORUM", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL)
+        selectInput(inputId = "prottype_network", label = "Selecting protein source", choices = c('CORUM' = "corum", 'BioPlex 3.0' = "bioplex", "All proteins with QTL" = "protwqtl", "All / individual proteins" = "all"), selected = "CORUM", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL)
       )
     }
 
@@ -1433,13 +1433,13 @@ server <- function(input, output, session) {
   
   # Analysis - ui_param_network ----
   output$ui_param_network2 <- renderUI({
-    req(forout_reactive$table_complex, input$prottype_network)
+    req(forout_reactive$table_complex, input$prottype_network, forout_reactive$protanno)
     
     if(input$prottype_network == "corum"){tagList(selectInput("network_complexselect", "Current selection", (c("All complexes", forout_reactive$table_complex %>% filter(cor > input$param_network_cor & qval < 10^(input$param_network_qval) & inCORUM == TRUE) %>% group_by(ComplexID) %>% add_tally(name = "complexsize") %>% ungroup() %>% filter(complexsize >= 2) %>% arrange(-complexsize) %>% select(ComplexName) %>% unique %>% unlist %>% as.vector())), selected = "All complexes", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL))
       
     } else if (input$prottype_network == "bioplex"){tagList(selectInput("network_complexselect", "Current selection", (c("All complexes", db_bioplex3_4pc %>% mutate(VarVar = tolower(VarVar)) %>% filter(VarVar %in% (forout_reactive$table_complex %>% filter(cor > input$param_network_cor & qval < 10^(input$param_network_qval)) %>% select(VarVar) %>% unlist)) %>% select(SymbolA, SymbolB) %>% c(.$SymbolA, .$SymbolB) %>% unique %>% unlist %>% sort(., decreasing = FALSE) %>% as.vector())), selected = NULL, multiple = FALSE, selectize = TRUE, width = NULL, size = NULL))
     
-    } else if (input$prottype_network == "all"){tagList(selectInput("network_complexselect", "Current selection", (c("All proteins")), selected = "All proteins", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL))
+    } else if (input$prottype_network == "all"){tagList(selectInput("network_complexselect", "Current selection", (c("All proteins", forout_reactive$protanno$ID %>% unique %>% unlist %>% as.vector() %>% sort(., decreasing = FALSE) %>% as.data.table())), selected = "All proteins", multiple = TRUE, selectize = TRUE, width = NULL, size = NULL))
       
     } else {tagList(selectInput("network_complexselect", "Current selection", (c("All proteins with QTLs")), selected = "All proteins with QTLs", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL))
       
@@ -2015,11 +2015,16 @@ server <- function(input, output, session) {
     
     req(forout_reactive$table_complex, input$network_complexselect, input$network_qtlselect, input$network_edgeselect, input$network_qtlsummarize, input$param_network_cor, input$param_network_qval, input$prottype_network)
     
+    sendSweetAlert(session = session, title = "Creating network plot", text = "", type = "info", btn_labels = NA, closeOnClickOutside = FALSE)
     message("Action: Creating network plot")
 
     if(input$network_complexselect == "All proteins"){
       
       nw_edge <- forout_reactive$table_complex %>% filter(cor > input$param_network_cor & qval < 10^(input$param_network_qval)) %>% select(varID1, varID2) %>% mutate(connection = "Protein-protein interaction", datatype = "protein")
+      
+    } else if(input$prottype_network == "all"){
+      
+      nw_edge <- forout_reactive$table_complex %>% filter(cor > input$param_network_cor & qval < 10^(input$param_network_qval)) %>% select(varID1, varID2) %>% filter((varID1 %in% input$network_complexselect) | (varID2 %in% input$network_complexselect)) %>% mutate(connection = "Protein-protein interaction", datatype = "protein")
       
     } else if(input$network_complexselect == "All proteins with QTLs"){
       
