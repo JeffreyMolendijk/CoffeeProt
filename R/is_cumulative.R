@@ -1,15 +1,15 @@
 #' Test whether SNP or gene locations are cumulative per chromosome, or non-cumulative
 #'
-#' \code{cp_dl_table_csv} returns a downloadHandler in shiny.
+#' \code{cp_is_cumulative} returns TRUE if the chromosome locations are cumulative
 #'
-#' @param data The table to be downloaded. Must contain a chromosome and location column.
+#' @param data The input data
 #' @param chr_col The gene or SNP chromosome column name, as a string
 #' @param loc_col The gene or SNP location column name, as a string
 #' 
 #' @return A boolean, TRUE / FALSE indicating whether the data is cumulative
 #'
 #' @examples
-#' cp_dl_table_csv(table, "chromosome_col", "location_col")
+#' cp_is_cumulative(table, "chromosome_col", "location_col")
 #' 
 cp_is_cumulative <- function(data, chr_col, loc_col){
   

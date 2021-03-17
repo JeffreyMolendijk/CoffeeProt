@@ -332,27 +332,8 @@ server <- function(input, output, session) {
       forout_reactive$protfilter <- df
       
       # Converting ID's to gene names (GREPL finds UNIPROT IDs https://www.uniprot.org/help/accession_numbers)
-      # The else if statement below detects ENSEMBL gene names (starting with ENS)
-      # If neither pattern is detected, assume that column already contains gene names
-      if((grepl("^[A-z][0-9][0-9,A-z][0-9,A-z][0-9,A-z][0-9]", df$ID) %>% sum / length(df$ID) * 100) > 50){
-        
-        uniKeys <- (AnnotationDbi::keys(org.Hs.eg.db::org.Hs.eg.db, keytype="SYMBOL")) %>%  c(., AnnotationDbi::keys(org.Mm.eg.db::org.Mm.eg.db, keytype="SYMBOL")) #Take all gene symbols from DB 
-        Hs_g <- AnnotationDbi::select(org.Hs.eg.db::org.Hs.eg.db, keys=uniKeys, columns="UNIPROT", keytype="SYMBOL") %>% bind_rows(., AnnotationDbi::select(org.Mm.eg.db::org.Mm.eg.db, keys=uniKeys, columns="UNIPROT", keytype="SYMBOL"))
-
-        df <- left_join(df, Hs_g, by = c("ID" = "UNIPROT")) %>% select(-2) %>% select(varID, SYMBOL, everything()) %>% rename(., ID = SYMBOL) %>% filter(is.na(ID) == FALSE)
-        
-        message("Status: Converted Uniprot to Gene names")
-      } else if((grepl("^ENS", df$ID) %>% sum / length(df$ID) * 100) > 50) {
-        
-        uniKeys <- (AnnotationDbi::keys(org.Hs.eg.db::org.Hs.eg.db, keytype="SYMBOL")) %>%  c(., AnnotationDbi::keys(org.Mm.eg.db::org.Mm.eg.db, keytype="SYMBOL")) #Take all gene symbols from DB 
-        Hs_g <- AnnotationDbi::select(org.Hs.eg.db::org.Hs.eg.db, keys=uniKeys, columns="ENSEMBL", keytype="SYMBOL") %>% bind_rows(., AnnotationDbi::select(org.Mm.eg.db::org.Mm.eg.db, keys=uniKeys, columns="ENSEMBL", keytype="SYMBOL"))
-        
-        df <- left_join(df, Hs_g, by = c("ID" = "ENSEMBL")) %>% select(-2) %>% select(varID, SYMBOL, everything()) %>% rename(., ID = SYMBOL) %>% filter(is.na(ID) == FALSE)
-        
-        message("Status: Converted Ensembl Gene to Gene names")
-      } else {
-        message("Status: No gene name conversion needed")
-      }
+      # The cp_idtype function detects the identifier type in the ID column
+      df <- cp_idconvert(df, cp_idtype(df$ID))
       
       
       # Add drug-gene interaction database annotations by joining on gene names
@@ -361,29 +342,11 @@ server <- function(input, output, session) {
       # If manual annotations have been uploaded, add them to df here... (Currently in development)
       if(isTruthy(input$protfile_manual)){
         print("manual anno file found")
-        protanno_manual <- cp_fileimport(input$protfile_manual) %>% select(1:2) %>% `colnames<-`(c("ID", "manual_annotation")) %>% mutate(ID = tolower(.$ID))
+        protanno_manual <- cp_fileimport(input$protfile_manual) %>% select(2,1) %>% `colnames<-`(c("manual_annotation", "ID")) %>% mutate(ID = tolower(.$ID))
         print(head(protanno_manual))
         
-        # Converting ID's to gene names (GREPL finds UNIPROT IDs https://www.uniprot.org/help/accession_numbers)
-        if((grepl("^[A-z][0-9][0-9,A-z][0-9,A-z][0-9,A-z][0-9]", protanno_manual$ID) %>% sum / length(protanno_manual$ID) * 100) > 50){
-          
-          uniKeys <- (AnnotationDbi::keys(org.Hs.eg.db::org.Hs.eg.db, keytype="SYMBOL")) %>%  c(., AnnotationDbi::keys(org.Mm.eg.db::org.Mm.eg.db, keytype="SYMBOL")) #Take all gene symbols from DB 
-          Hs_g <- AnnotationDbi::select(org.Hs.eg.db::org.Hs.eg.db, keys=uniKeys, columns="UNIPROT", keytype="SYMBOL") %>% bind_rows(., AnnotationDbi::select(org.Mm.eg.db::org.Mm.eg.db, keys=uniKeys, columns="UNIPROT", keytype="SYMBOL")) %>% mutate(UNIPROT = tolower(.$UNIPROT))
-          
-          protanno_manual <- left_join(protanno_manual, Hs_g, by = c("ID" = "UNIPROT")) %>% select(-ID) %>% select(SYMBOL, manual_annotation) %>% `colnames<-`(c("ID", "manual_annotation")) %>% filter(is.na(ID) == FALSE) %>% mutate(ID= tolower(.$ID))
-          
-          message("Status: Converted Uniprot to Gene names")
-        } else if((grepl("^ENS", protanno_manual$ID) %>% sum / length(protanno_manual$ID) * 100) > 50) {
-          
-          uniKeys <- (AnnotationDbi::keys(org.Hs.eg.db::org.Hs.eg.db, keytype="SYMBOL")) %>%  c(., AnnotationDbi::keys(org.Mm.eg.db::org.Mm.eg.db, keytype="SYMBOL")) #Take all gene symbols from DB 
-          Hs_g <- AnnotationDbi::select(org.Hs.eg.db::org.Hs.eg.db, keys=uniKeys, columns="ENSEMBL", keytype="SYMBOL") %>% bind_rows(., AnnotationDbi::select(org.Mm.eg.db::org.Mm.eg.db, keys=uniKeys, columns="ENSEMBL", keytype="SYMBOL")) %>% mutate(ENSEMBL = tolower(.$ENSEMBL))
-          
-          protanno_manual <- left_join(protanno_manual, Hs_g, by = c("ID" = "ENSEMBL")) %>% select(-ID) %>% select(SYMBOL, manual_annotation) %>% `colnames<-`(c("ID", "manual_annotation")) %>% filter(is.na(ID) == FALSE) %>% mutate(ID= tolower(.$ID))
-          
-          message("Status: Converted Ensembl Gene to Gene names")
-        } else {
-          message("Status: No gene name conversion needed")
-        }
+        # If manual annotation file contains IDs that are not genes, convert them.
+        protanno_manual <- cp_idconvert(protanno_manual, cp_idtype(protanno_manual$ID))
         
         df <- left_join(df, protanno_manual) %>% select(varID, ID, HPA_IF_protein_location:CP_loc, inDGIdb, manual_annotation, everything())
         
@@ -758,8 +721,7 @@ server <- function(input, output, session) {
 
     
     # CONVERTING ID TO GENE NAME
-    # Converting ID's to gene names (GREPL finds UNIPROT IDs https://www.uniprot.org/help/accession_numbers)
-    if((grepl("^[A-z][0-9][0-9,A-z][0-9,A-z][0-9,A-z][0-9]", df %>% select(!! rlang::sym(forout_reactive$qtlcolnames[4])) %>% unlist) %>% sum / length(df %>% select(!! rlang::sym(forout_reactive$qtlcolnames[4])) %>% unlist) * 100) > 50){
+    if(cp_idtype(df %>% select(!! rlang::sym(forout_reactive$qtlcolnames[4])) %>% unlist) == "uniprot"){
       
       uniKeys <- (AnnotationDbi::keys(org.Hs.eg.db::org.Hs.eg.db, keytype="SYMBOL")) %>%  c(., AnnotationDbi::keys(org.Mm.eg.db::org.Mm.eg.db, keytype="SYMBOL")) #Take all gene symbols from DB 
       Hs_g <- AnnotationDbi::select(org.Hs.eg.db::org.Hs.eg.db, keys=uniKeys, columns="UNIPROT", keytype="SYMBOL") %>% bind_rows(., AnnotationDbi::select(org.Mm.eg.db::org.Mm.eg.db, keys=uniKeys, columns="UNIPROT", keytype="SYMBOL"))
@@ -768,7 +730,7 @@ server <- function(input, output, session) {
       df <- df %>% mutate(!! rlang::sym(forout_reactive$qtlcolnames[4]) := SYMBOL) %>% select(-SYMBOL) %>% filter(is.na(!! rlang::sym(forout_reactive$qtlcolnames[4])) == FALSE)
 
       message("Status: Converted Uniprot to Gene names")
-    } else if((grepl("^ENS", df %>% select(!! rlang::sym(forout_reactive$qtlcolnames[4])) %>% unlist) %>% sum / length(df %>% select(!! rlang::sym(forout_reactive$qtlcolnames[4])) %>% unlist) * 100) > 50) {
+    } else if(cp_idtype(df %>% select(!! rlang::sym(forout_reactive$qtlcolnames[4])) %>% unlist) == "ensembl") {
       
       uniKeys <- (AnnotationDbi::keys(org.Hs.eg.db::org.Hs.eg.db, keytype="SYMBOL")) %>%  c(., AnnotationDbi::keys(org.Mm.eg.db::org.Mm.eg.db, keytype="SYMBOL")) #Take all gene symbols from DB 
       Hs_g <- AnnotationDbi::select(org.Hs.eg.db::org.Hs.eg.db, keys=uniKeys, columns="ENSEMBL", keytype="SYMBOL") %>% bind_rows(., AnnotationDbi::select(org.Mm.eg.db::org.Mm.eg.db, keys=uniKeys, columns="ENSEMBL", keytype="SYMBOL"))
@@ -2345,7 +2307,7 @@ server <- function(input, output, session) {
     
     req(forout_reactive$table_complex, forout_reactive$table_qtl_processed, isolate(input$protqtlplot_chrselect), isolate(input$param_qtlprot_cor), isolate(input$param_qtlprot_qval))
     
-    sendSweetAlert(session = session, title = "Creating SNP-Protein plots", text = "Started processing", type = "success")
+    sendSweetAlert(session = session, title = "Creating SNP-Protein plots", text = "Started processing", type = "info", btn_labels = NA, closeOnClickOutside = FALSE)
     message("Action: Creating SNP-Prot plot")
     
     if(nrow(forout_reactive$table_complex %>% filter(cor > isolate(input$param_qtlprot_cor) & qval < 10^(isolate(input$param_qtlprot_qval)))) == 0){sendSweetAlert(session = session, title = "Error, dataset contains 0 rows after filtering", text = "Please select less stringent cut-offs", type = "error")}
