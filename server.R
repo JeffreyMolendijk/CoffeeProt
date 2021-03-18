@@ -1599,7 +1599,7 @@ server <- function(input, output, session) {
       if(input$baitnetwork_dgi == "All DGIdb interactions"){
         drug <- db_dgidb %>% select(drug_name, gene_name)
       } else {
-        drug <- db_dgidb %>% filter(interaction_claim_source == input$baitnetwork_dgi %>% sub(" .*", "", .)) %>% select(drug_name, gene_name)
+        drug <- db_dgidb %>% filter(dgi_interaction_claim_source == input$baitnetwork_dgi %>% sub(" .*", "", .)) %>% select(drug_name, gene_name)
       }
       
       bait_edge <- rbind(bait_edge, drug %>% filter(gene_name %in% (bait_qtl %>% select(!! rlang::sym(forout_reactive$qtlcolnames[4])) %>% unlist %>% tolower())) %>% mutate(chromosome = "", edge = "Drug-gene interaction", datatype = "Drug-gene interaction") %>% `colnames<-`(colnames(bait_edge)) ) %>% mutate(varID2 = case_when(tolower(as.character(varID2)) %in% (bait_qtl %>% select(!! rlang::sym(forout_reactive$qtlcolnames[4])) %>% unlist %>% tolower) ~ tolower(as.character(varID2)), TRUE ~ as.character(varID2)) ) 
@@ -2048,7 +2048,7 @@ server <- function(input, output, session) {
       if(input$network_dgi == "All DGIdb interactions"){
         drug <- db_dgidb %>% select(drug_name, gene_name)
         } else {
-        drug <- db_dgidb %>% filter(interaction_claim_source == input$network_dgi %>% sub(" .*", "", .)) %>% select(drug_name, gene_name)
+        drug <- db_dgidb %>% filter(dgi_interaction_claim_source == input$network_dgi %>% sub(" .*", "", .)) %>% select(drug_name, gene_name)
       }
         
       nw_edge <- rbind(nw_edge, drug %>% filter(gene_name %in% (c(nw_edge$varID1, nw_edge$varID2) %>% unique %>% tolower())) %>% mutate(connection = "Drug-gene interaction", datatype = "Drug-gene interaction") %>% `colnames<-`(colnames(nw_edge)) )
@@ -2555,7 +2555,12 @@ server <- function(input, output, session) {
   output$download_networktable <- downloadHandler(
     filename = function() { paste("network_", input$network_complexselect, ".csv", sep = "") },
     content = function(file) {
-      write.csv(x = forout_reactive$network_links %>% left_join(., db_dgidb, by = c("varID1" = "drug_name", "varID2" = "gene_name")), file = file, row.names = FALSE)
+      
+      if("Drug-gene interaction" %in% forout_reactive$network_links$connection){
+        write.csv(x = forout_reactive$network_links %>% left_join(., db_dgidb, by = c("varID1" = "drug_name", "varID2" = "gene_name")), file = file, row.names = FALSE)
+      } else {
+        write.csv(x = forout_reactive$network_links, file = file, row.names = FALSE)
+      }
     })
   
   # Download bait network handler ----
@@ -2569,7 +2574,17 @@ server <- function(input, output, session) {
   output$download_baitnetworktable <- downloadHandler(
     filename = function() { paste("baitnetwork_", input$baitselect, ".csv", sep = "") },
     content = function(file) {
-      write.csv(x = forout_reactive$bait_links %>% left_join(., db_dgidb, by = c("varID1" = "drug_name", "varID2" = "gene_name")), file = file, row.names = FALSE)
+      
+      if("Drug-gene interaction" %in% forout_reactive$bait_links$edge){
+        
+        write.csv(x = forout_reactive$bait_links %>% left_join(., db_dgidb, by = c("varID1" = "drug_name", "varID2" = "gene_name")), file = file, row.names = FALSE)
+        
+      } else {
+        
+        write.csv(x = forout_reactive$bait_links, file = file, row.names = FALSE)
+        
+      }
+        
     })
   
   # Download plot handler ----

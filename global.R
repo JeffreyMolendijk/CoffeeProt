@@ -54,5 +54,5 @@ gwas_catalog <- readRDS("data/gwas_catalog/gwascatalog_short.Rds") %>% as.data.f
 ve_impact_mapping <- read.csv(file = "database/variant_effect_impact.csv", header = TRUE, stringsAsFactors = FALSE)
 
 # Read Drug-Gene Interaction database
-db_dgidb <- readRDS(file = "database/DGIdb_genename_drugname.Rds") %>% select(drug_name, gene_name, interaction_claim_source, interaction_types) %>% mutate(gene_name = tolower(gene_name))
-db_dgidb_source <- db_dgidb %>% group_by(interaction_claim_source) %>% count() %>% arrange(interaction_claim_source) %>% mutate(dgi_source = paste0(interaction_claim_source, " (", n, ")"))
+db_dgidb <- readRDS(file = "database/DGIdb_genename_drugname.Rds") %>% select(drug_name, gene_name, interaction_claim_source, interaction_types) %>% mutate(gene_name = tolower(gene_name)) %>% `colnames<-`(c("drug_name", "gene_name", "dgi_interaction_claim_source", "dgi_interaction_types"))
+db_dgidb_source <- db_dgidb %>% group_by(dgi_interaction_claim_source) %>% count() %>% arrange(dgi_interaction_claim_source) %>% mutate(dgi_source = paste0(dgi_interaction_claim_source, " (", n, ")"))
