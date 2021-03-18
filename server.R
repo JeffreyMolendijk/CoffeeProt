@@ -1605,7 +1605,7 @@ server <- function(input, output, session) {
       bait_edge <- rbind(bait_edge, drug %>% filter(gene_name %in% (bait_qtl %>% select(!! rlang::sym(forout_reactive$qtlcolnames[4])) %>% unlist %>% tolower())) %>% mutate(chromosome = "", edge = "Drug-gene interaction", datatype = "Drug-gene interaction") %>% `colnames<-`(colnames(bait_edge)) ) %>% mutate(varID2 = case_when(tolower(as.character(varID2)) %in% (bait_qtl %>% select(!! rlang::sym(forout_reactive$qtlcolnames[4])) %>% unlist %>% tolower) ~ tolower(as.character(varID2)), TRUE ~ as.character(varID2)) ) 
     }
     
-    bait_vertices <- unlist(list(bait_edge[,1] %>% as.character %>% unlist, bait_edge[,2] %>% as.character %>% unlist)) %>% as.data.frame() %>% `colnames<-`(c("var")) %>% group_by(var) %>% summarize(n=n()) %>% mutate(nodetype = case_when(var %in% bait_qtl[[forout_reactive$qtlcolnames[4]]] == TRUE ~ "Protein", var %in% db_dgidb$drug_name == TRUE ~ "Drug", var %in% bait_edge$varID1 == TRUE ~ "SNP", var %in% bait_pheno[[forout_reactive$phenocolnames[2]]] == TRUE ~ "Phenotype"))
+    bait_vertices <- unlist(list(bait_edge[,1] %>% as.character %>% unlist, bait_edge[,2] %>% as.character %>% unlist)) %>% as.data.frame() %>% `colnames<-`(c("var")) %>% group_by(var) %>% summarize(n=n()) %>% mutate(nodetype = case_when(tolower(var) %in% tolower(bait_qtl[[forout_reactive$qtlcolnames[4]]]) == TRUE ~ "Protein", var %in% db_dgidb$drug_name == TRUE ~ "Drug", var %in% bait_edge$varID1 == TRUE ~ "SNP", var %in% bait_pheno[[forout_reactive$phenocolnames[2]]] == TRUE ~ "Phenotype"))
     
     
     if(nrow(bait_vertices) > 0){
@@ -1642,7 +1642,7 @@ server <- function(input, output, session) {
   output$network_bait <- renderForceNetwork( {
     req(forout_reactive$bait_links, forout_reactive$bait_nodes)
     
-    forceNetwork(Links = forout_reactive$bait_links, Nodes = forout_reactive$bait_nodes, Source = 'source', Target = 'target', NodeID = 'var', Nodesize = 'n', Group = 'nodetype', linkColour = forout_reactive$bait_links$edgecol, charge = input$nodecharge, opacity = 0.8, fontSize = 12, zoom = TRUE, opacityNoHover = 0.4, clickAction = 'Shiny.onInputChange("nwbait_select_name", d.name), Shiny.onInputChange("nwbait_select_group", d.group)')
+    forceNetwork(Links = forout_reactive$bait_links, Nodes = forout_reactive$bait_nodes, Source = 'source', Target = 'target', NodeID = 'var', Nodesize = 'n', Group = 'nodetype', linkColour = forout_reactive$bait_links$edgecol, charge = input$nodecharge, opacity = 0.8, fontSize = 12, zoom = TRUE, opacityNoHover = 0.4, legend = TRUE, clickAction = 'Shiny.onInputChange("nwbait_select_name", d.name), Shiny.onInputChange("nwbait_select_group", d.group)')
     
   })
   
@@ -1660,15 +1660,6 @@ server <- function(input, output, session) {
   })
   
   
-  #Make table for selected target. showing all links
-  output$nw_baitselect_table_links <- renderUI({
-    
-    req(input$nwbait_select_name, input$nwbait_select_group, forout_reactive$bait_nodes, forout_reactive$bait_links)
-    numid <- forout_reactive$bait_nodes %>% filter(var == input$nwbait_select_name & nodetype == input$nwbait_select_group) %>% select(numid) %>% unlist %>% as.vector()
-    
-    box(title = "Selected target", status = "primary", solidHeader = FALSE, renderTable({forout_reactive$bait_links %>% filter(source %in% numid | target %in% numid) %>% select(-source, -target)}) )
-    
-  })
     
 
   # output - fileinput - qtltable ----  
@@ -2567,7 +2558,7 @@ server <- function(input, output, session) {
   output$download_baitnetwork <- downloadHandler(
     filename = function() { paste("baitnetwork_", input$baitselect, ".html", sep = "") },
     content = function(file) {
-    saveNetwork(forceNetwork(Links = forout_reactive$bait_links, Nodes = forout_reactive$bait_nodes, Source = 'source', Target = 'target', NodeID = 'var', Nodesize = 'n', Group = 'nodetype', linkColour = forout_reactive$bait_links$edgecol, charge = input$nodecharge, opacity = 0.8, fontSize = 12, zoom = TRUE, opacityNoHover = 0.4), file, selfcontained = TRUE)
+    saveNetwork(forceNetwork(Links = forout_reactive$bait_links, Nodes = forout_reactive$bait_nodes, Source = 'source', Target = 'target', NodeID = 'var', Nodesize = 'n', Group = 'nodetype', linkColour = forout_reactive$bait_links$edgecol, charge = input$nodecharge, opacity = 0.8, fontSize = 12, zoom = TRUE, opacityNoHover = 0.4, legend = TRUE), file, selfcontained = TRUE)
     })
   
   # Download bait network handler ----
