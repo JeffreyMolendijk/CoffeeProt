@@ -524,14 +524,17 @@ server <- function(input, output, session) {
         })
       } } else {
         
+        maxlod <- forout_reactive$qtldf[[ rlang::sym(forout_reactive$qtlcolnames[8]) ]] %>% .[is.finite(.)] %>% max() %>% floor()
+        minlod <- forout_reactive$qtldf[[ rlang::sym(forout_reactive$qtlcolnames[8]) ]] %>% .[is.finite(.)] %>% min() %>% floor()
+        
         if(input$qtl_filtertype == "single"){
           forout_reactive$proxylist_qtl <- forout_reactive$qtldf %>% select(!! rlang::sym(forout_reactive$qtlcolnames[9])) %>% unique %>% unlist()
-          sliderTextInput("qtlpval", "LOD filter", choices = c(0,1,10,100,1000), selected = 1, grid = TRUE)
+          sliderInput("qtlpval", "LOD filter", min = minlod, max = maxlod, value = 0, step = 1)
         } else {
           forout_reactive$proxylist_qtl <- forout_reactive$qtldf %>% select(!! rlang::sym(forout_reactive$qtlcolnames[9])) %>% unique %>% unlist()
 
           lapply(seq(forout_reactive$proxylist_qtl), function(i) {
-            sliderTextInput(inputId = paste0("proxy_", forout_reactive$proxylist_qtl[i]), label = paste0("Filter LOD by proxy: ", forout_reactive$proxylist_qtl[i]), choices = c(0,1,10,100,1000), selected = 1, grid = TRUE)
+            sliderInput(inputId = paste0("proxy_", forout_reactive$proxylist_qtl[i]), label = paste0("Filter LOD by proxy: ", forout_reactive$proxylist_qtl[i]), min = minlod, max = maxlod, value = 0, step = 1)
           }) } } })
   
   
@@ -1010,15 +1013,19 @@ server <- function(input, output, session) {
         })
       } } else {
         
+        maxlod <- forout_reactive$phenodf[[ rlang::sym(forout_reactive$phenocolnames[5]) ]] %>% .[is.finite(.)] %>% max() %>% floor()
+        minlod <- forout_reactive$phenodf[[ rlang::sym(forout_reactive$phenocolnames[5]) ]] %>% .[is.finite(.)] %>% min() %>% floor()
+        
+        
         if(input$pheno_filtertype == "single"){
           forout_reactive$proxylist_pheno <- forout_reactive$phenodf %>% select(forout_reactive$phenocolnames[6]) %>% unique %>% unlist()
-          sliderTextInput("phenopval", "LOD filter", choices = c(0,1,10,100,1000), selected = 1, grid = TRUE)
+          sliderInput("phenopval", "LOD filter", min = minlod, max = maxlod, value = 0, step = 1)
         } else {
           forout_reactive$proxylist_pheno <- forout_reactive$phenodf %>% select(!! rlang::sym(forout_reactive$phenocolnames[6])) %>% unique %>% unlist()
           message(forout_reactive$proxylist_pheno)
           
           lapply(seq(forout_reactive$proxylist_pheno), function(i) {
-            sliderTextInput(inputId = paste0("proxy_", forout_reactive$proxylist_pheno[i]), label = paste0("Filter LOD by proxy: ", forout_reactive$proxylist_pheno[i]), choices = c(0,1,10,100,1000), selected = 1, grid = TRUE)
+            sliderInput(inputId = paste0("proxy_", forout_reactive$proxylist_pheno[i]), label = paste0("Filter LOD by proxy: ", forout_reactive$proxylist_pheno[i]), min = minlod, max = maxlod, value = 0, step = 1)
           }) } } })
   
   # pheno data - input - renderUI_proxyselect ----
