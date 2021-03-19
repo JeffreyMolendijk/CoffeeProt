@@ -1284,6 +1284,17 @@ server <- function(input, output, session) {
   })
   
   
+  output$snp_interaction_table_ui <- renderUI({
+    
+    req(forout_reactive$table_qtl_processed, forout_reactive$table_pheno_processed)
+    
+    box(title = "SNP interaction table", status = "primary", width = 12,
+        HTML("<p>A table containing all SNPs that are associated to 1) a protein/transcript and 2) a trait can be generated to aid the interpretation of the bait network plots. This table can be exported with separate rows for individual traits, by combining all traits associated with a SNP-gene combination (e.g. <code>SNP1, gene1, trait1;trait2;trait3</code>) or by combining all genes associated with a SNP-trait combination (e.g. <code>SNP1, trait1, gene1;gene2;gene3</code>).</p>"), br(),
+        selectInput("interactiontable_type", "Select the format of the interaction table", choices = c("Single trait per row" = "single", "Combine traits" = "traits", "Combine genes" = "genes"), selected = 1, multiple = FALSE, selectize = TRUE, width = NULL, size = NULL),
+        downloadButton("download_interactiontable", "Download interactions"))
+    
+  })
+  
   output$parambox_baitnw_ui <- renderUI({
     
     req(forout_reactive$table_qtl_processed, forout_reactive$table_pheno_processed)
@@ -2553,7 +2564,37 @@ server <- function(input, output, session) {
         write.csv(x = forout_reactive$network_links, file = file, row.names = FALSE)
       }
     })
+
   
+  # Download SNP interaction table handler ----
+  output$download_interactiontable <- downloadHandler(
+    filename = function() { paste("SNP_interactions_", input$interactiontable_type, ".csv", sep = "") },
+    content = function(file) {
+      
+      x1 <<- forout_reactive$table_qtl_processed
+      x2 <<- forout_reactive$table_pheno_processed
+      
+      snplist <- intersect(forout_reactive$table_qtl_processed$ID, forout_reactive$table_pheno_processed$ID)
+      interactiontable <- left_join(forout_reactive$table_qtl_processed %>% filter(ID %in% snplist), forout_reactive$table_pheno_processed %>% filter(ID %in% snplist))
+      colnames <- colnames(interactiontable)
+      
+      interactiontable <- interactiontable %>% rename(gene = colnames[4]) %>% rename(trait_name = colnames[length(colnames)-2])
+      
+      
+      if(input$interactiontable_type == "single"){
+        
+        write.csv(x = interactiontable, file = file, row.names = FALSE)
+        
+      } else if(input$interactiontable_type == "traits"){
+        
+        write.csv(x = aggregate(trait_name ~ .,data=interactiontable %>% select(ID, gene, trait_name) %>% as.matrix,FUN=paste0, collapse = ";"), file = file, row.names = FALSE)
+        
+      } else {
+        
+        write.csv(x = aggregate(gene ~ .,data=interactiontable %>% select(ID, gene, trait_name) %>% as.matrix,FUN=paste0, collapse = ";"), file = file, row.names = FALSE)
+        
+      } })
+    
   # Download bait network handler ----
   output$download_baitnetwork <- downloadHandler(
     filename = function() { paste("baitnetwork_", input$baitselect, ".html", sep = "") },
