@@ -18,6 +18,14 @@ server <- function(input, output, session) {
   # Divert messages to the output for logging purposes
   if (!interactive()) sink(stderr(), type = "output")
 
+#  # Periodically clear ram
+#  observe({
+#    # periodically collect, every 30 seconds?
+#    invalidateLater(30000,session)
+#    message("ram cleared")
+#    gc()
+#  })
+  
   # Log message to identify the time CoffeeProt was accessed
   message(paste0("Status: CoffeeProt Version 1.0 (28/02/2021) is accessed at ", date()))
   
@@ -135,7 +143,7 @@ server <- function(input, output, session) {
   output$downloadData <- downloadHandler(
     filename <- function() {paste(input$demoset, "zip", sep=".")},
     
-    content <- function(file) {message("Action: User downloaded the demo dataset")
+    content =function(file) {message("Action: User downloaded the demo dataset")
       file.copy(paste0("data/",input$demoset,".zip"), file)},
     contentType = "application/zip",
   )
@@ -2550,6 +2558,7 @@ server <- function(input, output, session) {
   output$download_network <- downloadHandler(
     filename = function() { paste("network_", input$network_complexselect, ".html", sep = "") },
     content = function(file) {
+      
       saveNetwork(forout_reactive$interactive_plot_network_dl, file, selfcontained = TRUE)
     })
   
@@ -2570,9 +2579,6 @@ server <- function(input, output, session) {
   output$download_interactiontable <- downloadHandler(
     filename = function() { paste("SNP_interactions_", input$interactiontable_type, ".csv", sep = "") },
     content = function(file) {
-      
-      x1 <<- forout_reactive$table_qtl_processed
-      x2 <<- forout_reactive$table_pheno_processed
       
       snplist <- intersect(forout_reactive$table_qtl_processed$ID, forout_reactive$table_pheno_processed$ID)
       interactiontable <- left_join(forout_reactive$table_qtl_processed %>% filter(ID %in% snplist), forout_reactive$table_pheno_processed %>% filter(ID %in% snplist))
@@ -2599,6 +2605,7 @@ server <- function(input, output, session) {
   output$download_baitnetwork <- downloadHandler(
     filename = function() { paste("baitnetwork_", input$baitselect, ".html", sep = "") },
     content = function(file) {
+      
     saveNetwork(forceNetwork(Links = forout_reactive$bait_links, Nodes = forout_reactive$bait_nodes, Source = 'source', Target = 'target', NodeID = 'var', Nodesize = 'n', Group = 'nodetype', linkColour = forout_reactive$bait_links$edgecol, charge = input$nodecharge, opacity = 0.8, fontSize = 12, zoom = TRUE, opacityNoHover = 0.4, legend = TRUE), file, selfcontained = TRUE)
     })
   
@@ -2633,7 +2640,7 @@ server <- function(input, output, session) {
   output$download_plot_zip <- downloadHandler(
     filename = function() { paste("CoffeeProt_all_plots.zip") },
  
-      content <- function(file) {
+      content =function(file) {
         
         if(length((c(names(forout_reactive) %>% grep("^plot_", ., value = TRUE) %>% sort() ))) > 0){
         
@@ -2658,7 +2665,7 @@ server <- function(input, output, session) {
   output$download_table_zip <- downloadHandler(
     filename = function() { paste("CoffeeProt_all_tables.zip") },
     
-    content <- function(file) {
+    content =function(file) {
       
       if(length((c(names(forout_reactive) %>% grep("^table_", ., value = TRUE) %>% sort() ))) > 0){
         
@@ -2773,25 +2780,5 @@ server <- function(input, output, session) {
   output$download_corumcomplextable   <- cp_dl_table_csv(forout_reactive$table_complex_tally, "corum_complex_tally.csv")
   
   # Download complex table
-  output$download_complextable        <- downloadHandler(
-    filename = function() { paste("protein_complex.zip") },
-    
-    content <- function(file) {
-      
-        sendSweetAlert(session = session, title = "Starting download!", text = "The download will start as soon as the table is prepared", type = "info", btn_labels = NA, closeOnClickOutside = FALSE)
-        
-        fs <- c()
-        tmpdir <- tempdir()
-        print(tmpdir)
-
-          path <- paste0(tmpdir, "\\", "protein_complex.csv")
-          fs <- c(fs, path)
-          write.csv(x = forout_reactive$table_complex %>% filter(log10(pval) < input$complextable_dl_filter) %>% select(varID1, varID2, VarVar, everything()), file = path, row.names = FALSE)
-        
-        zip(zipfile=file, files=fs, flags = "-j")
-        
-        sendSweetAlert(session = session, title = "Table prepared!", text = "The download will start now", type = "success")
-        
-       }
-  )
+  output$download_complextable <- cp_dl_table_csv(forout_reactive$table_complex %>% filter(log10(pval) < input$complextable_dl_filter) %>% select(varID1, varID2, VarVar, everything()), "protein_complex.csv")
 }
