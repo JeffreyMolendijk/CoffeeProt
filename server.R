@@ -932,6 +932,8 @@ server <- function(input, output, session) {
     filename = function() { paste("Circos_", input$network_complexselect %>% unlist, ".svg", sep = "") },
     content = function(file) {
       
+      gc()
+      
       req(forout_reactive$cp_circos)
       
       svg(filename = file)
@@ -1163,6 +1165,8 @@ server <- function(input, output, session) {
   output$download_pheno_anno_metabolite <- downloadHandler(
     filename = function() { paste("molQTL_annotated.csv") },
     content = function(file) {
+      
+      gc()
       
       df <- cp_fileimport(input$phenofile_anno)
       phenocolnames <- colnames(df)
@@ -2559,6 +2563,8 @@ server <- function(input, output, session) {
     filename = function() { paste("network_", input$network_complexselect, ".html", sep = "") },
     content = function(file) {
       
+      gc()
+      
       saveNetwork(forout_reactive$interactive_plot_network_dl, file, selfcontained = TRUE)
     })
   
@@ -2566,6 +2572,8 @@ server <- function(input, output, session) {
   output$download_networktable <- downloadHandler(
     filename = function() { paste("network_", input$network_complexselect, ".csv", sep = "") },
     content = function(file) {
+      
+      gc()
       
       if("Drug-gene interaction" %in% forout_reactive$network_links$connection){
         write.csv(x = forout_reactive$network_links %>% left_join(., db_dgidb, by = c("varID1" = "drug_name", "varID2" = "gene_name")), file = file, row.names = FALSE)
@@ -2579,6 +2587,8 @@ server <- function(input, output, session) {
   output$download_interactiontable <- downloadHandler(
     filename = function() { paste("SNP_interactions_", input$interactiontable_type, ".csv", sep = "") },
     content = function(file) {
+      
+      gc()
       
       snplist <- intersect(forout_reactive$table_qtl_processed$ID, forout_reactive$table_pheno_processed$ID)
       interactiontable <- left_join(forout_reactive$table_qtl_processed %>% filter(ID %in% snplist), forout_reactive$table_pheno_processed %>% filter(ID %in% snplist))
@@ -2606,6 +2616,8 @@ server <- function(input, output, session) {
     filename = function() { paste("baitnetwork_", input$baitselect, ".html", sep = "") },
     content = function(file) {
       
+      gc()
+      
     saveNetwork(forceNetwork(Links = forout_reactive$bait_links, Nodes = forout_reactive$bait_nodes, Source = 'source', Target = 'target', NodeID = 'var', Nodesize = 'n', Group = 'nodetype', linkColour = forout_reactive$bait_links$edgecol, charge = input$nodecharge, opacity = 0.8, fontSize = 12, zoom = TRUE, opacityNoHover = 0.4, legend = TRUE), file, selfcontained = TRUE)
     })
   
@@ -2613,6 +2625,8 @@ server <- function(input, output, session) {
   output$download_baitnetworktable <- downloadHandler(
     filename = function() { paste("baitnetwork_", input$baitselect, ".csv", sep = "") },
     content = function(file) {
+      
+      gc()
       
       if("Drug-gene interaction" %in% forout_reactive$bait_links$edge){
         
@@ -2631,6 +2645,8 @@ server <- function(input, output, session) {
     filename = function() { paste(input$downloadplotselect, '.', input$downloadplotfiletype, sep='') },
     content = function(file) {
       
+      gc()
+      
       sendSweetAlert(session = session, title = "Starting download!", text = "The download will start as soon as the plot is rendered.", type = "success")
       
       ggsave(file, plot = forout_reactive[[input$downloadplotselect]], device = input$downloadplotfiletype, width = as.numeric(input$plotdims[1]), height = (as.numeric(input$plotdims[1]) / as.numeric(input$plotdims[2])))
@@ -2641,6 +2657,8 @@ server <- function(input, output, session) {
     filename = function() { paste("CoffeeProt_all_plots.zip") },
  
       content =function(file) {
+        
+        gc()
         
         if(length((c(names(forout_reactive) %>% grep("^plot_", ., value = TRUE) %>% sort() ))) > 0){
         
@@ -2666,6 +2684,8 @@ server <- function(input, output, session) {
     filename = function() { paste("CoffeeProt_all_tables.zip") },
     
     content =function(file) {
+      
+      gc()
       
       if(length((c(names(forout_reactive) %>% grep("^table_", ., value = TRUE) %>% sort() ))) > 0){
         
@@ -2743,6 +2763,8 @@ server <- function(input, output, session) {
     filename = function() { paste("gwas_", forout_reactive$gwas_catalog_temp_pubmed_id, ".csv", sep = "") },
     content = function(file) { 
       
+      gc()
+      
       if(!isTruthy(forout_reactive$gwas_catalog_temp)){
         
         sendSweetAlert(session = session, title = "Please generate a table first.", text = "First select a study of interest, followed by hitting the 'Retrieve and generate GWAS table' button", type = "error")
@@ -2780,5 +2802,27 @@ server <- function(input, output, session) {
   output$download_corumcomplextable   <- cp_dl_table_csv(forout_reactive$table_complex_tally, "corum_complex_tally.csv")
   
   # Download complex table
-  output$download_complextable <- cp_dl_table_csv(forout_reactive$table_complex %>% filter(log10(pval) < input$complextable_dl_filter) %>% select(varID1, varID2, VarVar, everything()), "protein_complex.csv")
+  # Download complex table
+  output$download_complextable        <- downloadHandler(
+    filename = function() { paste("protein_complex.zip") },
+    
+    content = function(file) {
+      
+      sendSweetAlert(session = session, title = "Starting download!", text = "The download will start as soon as the table is prepared", type = "info", btn_labels = NA, closeOnClickOutside = FALSE)
+      gc()
+      
+      fs <- c()
+      tmpdir <- tempdir()
+      print(tmpdir)
+      
+      path <- paste0(tmpdir, "\\", "protein_complex.csv")
+      fs <- c(fs, path)
+      write.csv(x = forout_reactive$table_complex %>% filter(log10(pval) < input$complextable_dl_filter) %>% select(varID1, varID2, VarVar, everything()), file = path, row.names = FALSE)
+      
+      zip(zipfile=file, files=fs, flags = "-j")
+      
+      sendSweetAlert(session = session, title = "Table prepared!", text = "The download will start now", type = "success")
+      
+    }
+  )
 }
