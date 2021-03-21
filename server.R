@@ -2810,13 +2810,25 @@ server <- function(input, output, session) {
       sendSweetAlert(session = session, title = "Starting download!", text = "The download will start as soon as the table is prepared", type = "info", btn_labels = NA, closeOnClickOutside = FALSE)
       gc()
       
+      if(exists("tmpdir")){
+        unlink(tmpdir)
+        exists("tmpdir")
+        print("deleting tempdir")
+      }
+      
       fs <- c()
-      tmpdir <- tempdir()
+      tmpdir <<- tempdir()
       print(tmpdir)
       
       path <- paste0(tmpdir, "\\", "protein_complex.csv")
       fs <- c(fs, path)
-      write.csv(x = forout_reactive$table_complex %>% filter(log10(pval) < input$complextable_dl_filter) %>% select(varID1, varID2, VarVar, everything()), file = path, row.names = FALSE)
+      
+      if(nrow(forout_reactive$table_complex %>% filter(log10(pval) < input$complextable_dl_filter)) > 5000000){
+        write.csv(x = forout_reactive$table_complex %>% filter(log10(pval) < input$complextable_dl_filter) %>% slice_min(., pval, n = 5000000) %>% select(varID1, varID2, VarVar, everything()), file = path, row.names = FALSE)
+      } else {
+        write.csv(x = forout_reactive$table_complex %>% filter(log10(pval) < input$complextable_dl_filter) %>% select(varID1, varID2, VarVar, everything()), file = path, row.names = FALSE)
+      }
+      
       
       zip(zipfile=file, files=fs, flags = "-j")
       
