@@ -476,7 +476,7 @@ server <- function(input, output, session) {
     req(forout_reactive$table_complex)
     tagList(tabBox(title = "", width = 12,
                    tabPanel("Protein/transcript table (preview)", DT::DTOutput("protannotable"), downloadButton("download_protannotable","Download table")),
-                   tabPanel("Correlation table (preview)", DT::DTOutput("cortable"), sliderInput("complextable_dl_filter", "Export p-value filter (-log10 scale)", min = -10, max = 0, value = 0, step = 1), downloadButton("download_complextable","Download annotated correlation table")) ) )
+                   tabPanel("Correlation table (preview)", DT::DTOutput("cortable"), sliderInput("complextable_dl_filter", "Export p-value filter (-log10 scale)", min = -10, max = 0, value = 0, step = 1), downloadButton("download_complextable","Download annotated correlation table"), HTML("<em><sup>* Currently has a 1.000.000 row limit</sup></em>")) ) )
       })  
   
 
@@ -2823,8 +2823,8 @@ server <- function(input, output, session) {
       path <- paste0(tmpdir, "\\", "protein_complex.csv")
       fs <- c(fs, path)
       
-      if(nrow(forout_reactive$table_complex %>% filter(log10(pval) < input$complextable_dl_filter)) > 5000000){
-        write.csv(x = forout_reactive$table_complex %>% filter(log10(pval) < input$complextable_dl_filter) %>% slice_min(., pval, n = 5000000) %>% select(varID1, varID2, VarVar, everything()), file = path, row.names = FALSE)
+      if(nrow(forout_reactive$table_complex %>% filter(log10(pval) < input$complextable_dl_filter)) > 1000000){
+        write.csv(x = forout_reactive$table_complex %>% filter(log10(pval) < input$complextable_dl_filter) %>% slice_min(., pval, n = 1000000) %>% select(varID1, varID2, VarVar, everything()), file = path, row.names = FALSE)
       } else {
         write.csv(x = forout_reactive$table_complex %>% filter(log10(pval) < input$complextable_dl_filter) %>% select(varID1, varID2, VarVar, everything()), file = path, row.names = FALSE)
       }
