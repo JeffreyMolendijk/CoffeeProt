@@ -2591,10 +2591,10 @@ server <- function(input, output, session) {
       gc()
       
       snplist <- intersect(forout_reactive$table_qtl_processed$ID, forout_reactive$table_pheno_processed$ID)
-      interactiontable <- left_join(forout_reactive$table_qtl_processed %>% filter(ID %in% snplist), forout_reactive$table_pheno_processed %>% filter(ID %in% snplist))
+      interactiontable <- left_join(forout_reactive$table_qtl_processed %>% filter(ID %in% snplist), forout_reactive$table_pheno_processed %>% filter(ID %in% snplist), by = "ID")
       colnames <- colnames(interactiontable)
       
-      interactiontable <- interactiontable %>% rename(gene = colnames[4]) %>% rename(trait_name = colnames[length(colnames)-2])
+      interactiontable <- interactiontable %>% rename(gene = colnames[4]) %>% rename(CP_trait_name = colnames[length(colnames)-2])
       
       
       if(input$interactiontable_type == "single"){
@@ -2603,11 +2603,11 @@ server <- function(input, output, session) {
         
       } else if(input$interactiontable_type == "traits"){
         
-        write.csv(x = aggregate(trait_name ~ .,data=interactiontable %>% select(ID, gene, trait_name) %>% as.matrix,FUN=paste0, collapse = ";"), file = file, row.names = FALSE)
+        write.csv(x = aggregate(CP_trait_name ~ .,data=interactiontable %>% select(ID, gene, CP_trait_name) %>% as.matrix,FUN=paste0, collapse = ";"), file = file, row.names = FALSE)
         
       } else {
         
-        write.csv(x = aggregate(gene ~ .,data=interactiontable %>% select(ID, gene, trait_name) %>% as.matrix,FUN=paste0, collapse = ";"), file = file, row.names = FALSE)
+        write.csv(x = aggregate(gene ~ .,data=interactiontable %>% select(ID, gene, CP_trait_name) %>% as.matrix,FUN=paste0, collapse = ";"), file = file, row.names = FALSE)
         
       } })
     
