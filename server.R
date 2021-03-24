@@ -2594,8 +2594,11 @@ server <- function(input, output, session) {
       interactiontable <- left_join(forout_reactive$table_qtl_processed %>% filter(ID %in% snplist), forout_reactive$table_pheno_processed %>% filter(ID %in% snplist), by = "ID")
       colnames <- colnames(interactiontable)
       
-      interactiontable <- interactiontable %>% rename(gene = colnames[4]) %>% rename(CP_trait_name = colnames[length(colnames)-2])
+      print(colnames)
       
+      interactiontable <- interactiontable %>% rename(gene = colnames[4]) %>% rename(CP_trait_name = colnames[length(colnames)-4])
+      
+      print(colnames)
       
       if(input$interactiontable_type == "single"){
         
