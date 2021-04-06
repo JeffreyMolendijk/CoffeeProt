@@ -476,7 +476,7 @@ server <- function(input, output, session) {
     req(forout_reactive$table_complex)
     tagList(tabBox(title = "", width = 12,
                    tabPanel("Protein/transcript table (preview)", DT::DTOutput("protannotable"), downloadButton("download_protannotable","Download table")),
-                   tabPanel("Correlation table (preview)", DT::DTOutput("cortable"), sliderInput("complextable_dl_filter", "Export p-value filter (-log10 scale)", min = -10, max = 0, value = 0, step = 1), downloadButton("download_complextable","Download annotated correlation table"), HTML("<em><sup>* Currently has a 1.000.000 row limit</sup></em>")) ) )
+                   tabPanel("Correlation table (preview)", DT::DTOutput("cortable"), sliderInput("complextable_dl_filter", "Export p-value filter (log10 scale)", min = -10, max = 0, value = 0, step = 1), downloadButton("download_complextable","Download annotated correlation table"), HTML("<em><sup>* Currently has a 1.000.000 row limit</sup></em>")) ) )
       })  
   
 
@@ -523,12 +523,12 @@ server <- function(input, output, session) {
 
       if(input$qtl_filtertype == "single"){
         forout_reactive$proxylist_qtl <- forout_reactive$qtldf %>% select(!! rlang::sym(forout_reactive$qtlcolnames[9])) %>% unique %>% unlist()
-        sliderInput("qtlpval", "p-value filter (-log10 scale)", min = -maxpval, max = 0, value = 0, step = 1)
+        sliderInput("qtlpval", "p-value filter (log10 scale)", min = -maxpval, max = 0, value = 0, step = 1)
       } else {
         forout_reactive$proxylist_qtl <- forout_reactive$qtldf %>% select(!! rlang::sym(forout_reactive$qtlcolnames[9])) %>% unique %>% unlist()
 
         lapply(seq(forout_reactive$proxylist_qtl), function(i) {
-          sliderInput(inputId = paste0("proxy_", forout_reactive$proxylist_qtl[i]), label = paste0("Filter p-value (-log10 scale) by proxy: ", forout_reactive$proxylist_qtl[i]), min = -maxpval, max = 0, value = 0, step = 1)
+          sliderInput(inputId = paste0("proxy_", forout_reactive$proxylist_qtl[i]), label = paste0("Filter p-value (log10 scale) by proxy: ", forout_reactive$proxylist_qtl[i]), min = -maxpval, max = 0, value = 0, step = 1)
         })
       } } else {
         
@@ -1013,14 +1013,14 @@ server <- function(input, output, session) {
       
       if(input$pheno_filtertype == "single"){
         forout_reactive$proxylist_pheno <- forout_reactive$phenodf %>% select(forout_reactive$phenocolnames[6]) %>% unique %>% unlist()
-        sliderInput("phenopval", "p-value filter (-log10 scale)", min = -maxpval, max = 0, value = 0, step = 1)
+        sliderInput("phenopval", "p-value filter (log10 scale)", min = -maxpval, max = 0, value = 0, step = 1)
         
       } else {
         forout_reactive$proxylist_pheno <- forout_reactive$phenodf %>% select(forout_reactive$phenocolnames[6]) %>% unique %>% unlist()
         message(forout_reactive$proxylist_pheno)
         
         lapply(seq(forout_reactive$proxylist_pheno), function(i) {
-          sliderInput(inputId = paste0("proxy_", forout_reactive$proxylist_pheno[i]), label = paste0("Filter p-value (-log10 scale) by proxy: ", forout_reactive$proxylist_pheno[i]), min = -maxpval, max = 0, value = 0, step = 1)
+          sliderInput(inputId = paste0("proxy_", forout_reactive$proxylist_pheno[i]), label = paste0("Filter p-value (log10 scale) by proxy: ", forout_reactive$proxylist_pheno[i]), min = -maxpval, max = 0, value = 0, step = 1)
         })
       } } else {
         
@@ -1197,7 +1197,7 @@ server <- function(input, output, session) {
     
     maxpval <- forout_reactive$table_complex[[ "pval" ]] %>% -(log10(.)) %>% .[is.finite(.)] %>% max() %>% floor()
     
-      tagList(sliderInput("param_qtlprot_qval", "q-value cut-off (-log10 scale)", min = -maxpval, max = 0, value = 0, step = 1),
+      tagList(sliderInput("param_qtlprot_qval", "q-value cut-off (log10 scale)", min = -maxpval, max = 0, value = 0, step = 1),
               sliderInput(inputId = "param_qtlprot_cor", "Correlation cut-off", min = -1, max = 1, value = c(-1, 0.5), step = 0.01),
               selectInput("protqtlplot_chrselect", "Select Chromosome", (c("All Chromosomes", forout_reactive$table_qtl_processed %>% arrange(!! rlang::sym(forout_reactive$qtlcolnames[3])) %>% select(!! rlang::sym(forout_reactive$qtlcolnames[3])) %>% unique %>% unlist %>% as.vector())), selected = "All Chromosomes", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL),
               selectInput("select_organelle_protqtl", "Select organelles to include", choices = c(db_hpa_locoverlap %>% distinct() %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = FALSE, na.last = TRUE), NA), selected = c(db_hpa_locoverlap %>% distinct() %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = TRUE, na.last = TRUE), NA), multiple = TRUE, selectize = TRUE, width = NULL, size = NULL),
@@ -1384,7 +1384,7 @@ server <- function(input, output, session) {
     
     
       box(title = "Plot parameters", status = "primary", solidHeader = FALSE, width = 12,
-          sliderInput("param_summary_qval", "q-value cut-off (-log10 scale)", min = -maxpval, max = 0, value = 0, step = 1),
+          sliderInput("param_summary_qval", "q-value cut-off (log10 scale)", min = -maxpval, max = 0, value = 0, step = 1),
           sliderInput(inputId = "param_summary_cor", "Correlation cut-off", min = -1, max = 1, value = c(-0.5, 0.5), step = 0.01),
           actionButton(inputId = "summary_bttn", label = "Make plot!"))
   })
@@ -1395,7 +1395,7 @@ server <- function(input, output, session) {
     maxpval <- forout_reactive$table_complex[[ "pval" ]] %>% -(log10(.)) %>% .[is.finite(.)] %>% max() %>% floor()
     
     box(title = "Plot parameters", status = "primary", solidHeader = FALSE, width = 12,
-        sliderInput("param_database_qval", "q-value cut-off (-log10 scale)", min = -maxpval, max = 0, value = 0, step = 1),
+        sliderInput("param_database_qval", "q-value cut-off (log10 scale)", min = -maxpval, max = 0, value = 0, step = 1),
         sliderInput(inputId = "param_database_cor", "Correlation cut-off", min = -1, max = 1, value = 0.5, step = 0.01),
         actionButton(inputId = "database_bttn", label = "Make plot!"))
   })
@@ -1408,14 +1408,14 @@ server <- function(input, output, session) {
     
     if(is.null(forout_reactive$table_qtl_processed) == TRUE){
       tagList(
-        sliderInput("param_network_qval", "q-value cut-off (-log10 scale)", min = -maxpval, max = 0, value = 0, step = 1),
+        sliderInput("param_network_qval", "q-value cut-off (log10 scale)", min = -maxpval, max = 0, value = 0, step = 1),
         sliderInput(inputId = "param_network_cor", "Correlation cut-off", min = -1, max = 1, value = c(-1, 0.5), step = 0.01),
         selectInput("select_organelle", "Select organelles to include", choices = c(db_hpa_locoverlap %>% distinct() %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = FALSE, na.last = TRUE), NA), selected = c(db_hpa_locoverlap %>% distinct() %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = TRUE, na.last = TRUE), NA), multiple = TRUE, selectize = TRUE, width = NULL, size = NULL),
         selectInput(inputId = "prottype_network", label = "Selecting protein source", choices = c('CORUM' = "corum", 'BioPlex 3.0' = "bioplex", "All / individual proteins" = "all"), selected = "CORUM", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL)
       )
     } else {
       tagList(
-        sliderInput("param_network_qval", "q-value cut-off (-log10 scale)", min = -maxpval, max = 0, value = 0, step = 1),
+        sliderInput("param_network_qval", "q-value cut-off (log10 scale)", min = -maxpval, max = 0, value = 0, step = 1),
         sliderInput(inputId = "param_network_cor", "Correlation cut-off", min = -1, max = 1, value = c(-1, 0.5), step = 0.01),
         selectInput("select_organelle", "Select organelles to include", choices = c(db_hpa_locoverlap %>% distinct() %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = FALSE, na.last = TRUE), NA), selected = c(db_hpa_locoverlap %>% distinct() %>% select(loc1) %>% unlist %>% unique() %>% strsplit(., ";") %>% unlist %>% unique %>% sort(., decreasing = TRUE, na.last = TRUE), NA), multiple = TRUE, selectize = TRUE, width = NULL, size = NULL),
         selectInput(inputId = "prottype_network", label = "Selecting protein source", choices = c('CORUM' = "corum", 'BioPlex 3.0' = "bioplex", "All proteins with QTL" = "protwqtl", "All / individual proteins" = "all"), selected = "CORUM", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL)
@@ -1709,7 +1709,7 @@ server <- function(input, output, session) {
     tallytable <- tallytable %>% left_join(., total)
     
     forout_reactive$table_qtl_tally <- tallytable %>% mutate_all(funs(tidyr::replace_na(., 0))) %>% arrange(-n_total)
-    return(forout_reactive$table_qtl_tally %>% DT::datatable(., rownames = FALSE, caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: pQTL/eQTL gene tally table. ", "</b>","<em>","A tally of the pQTL genes. Ordered from most prevalent to least prevalent" , "</em>"))),
+    return(forout_reactive$table_qtl_tally %>% DT::datatable(., rownames = FALSE, caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: pQTL/eQTL gene tally table. ", "</b>","<em>","A tally of the number of pQTLs/eQTLs per protein/transcript. The total number, and the number for each of the provided groupings/proxies is shown. The table is ordered from most prevalent to least prevalent" , "</em>"))),
                                                              options = list(scrollX = TRUE, pageLength = 5, dom = 'tip')))
     
   }, server = FALSE)
@@ -1759,7 +1759,7 @@ server <- function(input, output, session) {
     tallytable <- tallytable %>% left_join(., total)
     
     forout_reactive$table_pheno_tally <- tallytable %>% mutate_all(funs(tidyr::replace_na(., 0))) %>% arrange(-n_total)
-    return(forout_reactive$table_pheno_tally %>% DT::datatable(., rownames = FALSE, caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: molQTL gene tally table. ", "</b>","<em>","A tally of the molQTLs Ordered from most prevalent to least prevalent" , "</em>"))),
+    return(forout_reactive$table_pheno_tally %>% DT::datatable(., rownames = FALSE, caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: molQTL gene tally table. ", "</b>","<em>","A tally of the number of molQTLs per trait. The total number, and the number for each of the provided groupings/proxies is shown. The table is ordered from most prevalent to least prevalent" , "</em>"))),
                                                                options = list(scrollX = TRUE, pageLength = 5, dom = 'tip')))
     
   }, server = FALSE)
