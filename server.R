@@ -222,7 +222,7 @@ server <- function(input, output, session) {
     print(head(forout_reactive$haplotypedf))
     
     # Notify user that demo data has been loaded
-    sendSweetAlert(session = session, title = "Demo files loaded", text = "Proteomic, pQTL, haplotype and molQTL datasets have been loaded. Please proceed to process the loaded data, but ignore the fileuploaders.", type = "success")
+    sendSweetAlert(session = session, title = "Demo files loaded", html = TRUE, text = HTML("Proteomic, pQTL, haplotype and molQTL datasets have been loaded. Please proceed to process the loaded data, but ignore the fileuploaders. The data can be processed on the <code>Protein/transcript data</code>, <code>pQTL/eQTL data</code> and <code>GWAS/molQTL</code> tabs shown in the navigation bar on the left."), type = "success")
     message(paste0("Action: User loaded the demo datafiles"))
     
   }, ignoreInit = TRUE)
@@ -976,8 +976,9 @@ server <- function(input, output, session) {
   output$qtl_tables_ui <- renderUI({
     req(input$qtl_final_upload)
     tagList(tabBox(title = "", width = 12,
-                   tabPanel("pQTL table", DT::DTOutput("qtltable"), downloadButton("download_qtltable","Download table")),
-                   tabPanel("pQTL gene tally", DT::DTOutput("qtltallytable"), downloadButton("download_qtltallytable","Download table")) ) )
+                   tabPanel("p/eQTL table", DT::DTOutput("qtltable"), downloadButton("download_qtltable","Download table")),
+                   tabPanel("p/eQTL gene tally", DT::DTOutput("qtltallytable"), downloadButton("download_qtltallytable","Download table")),
+                   tabPanel("Intragenic/intergenic interactions", DT::DTOutput("intraintertable"), downloadButton("download_intraintertable","Download table"), downloadButton("download_intrainter_summarized_table","Download table (summarized)")) ) )
   })  
   
 
@@ -1689,7 +1690,7 @@ server <- function(input, output, session) {
   output$qtltable <- DT::renderDT({
     req(forout_reactive$table_qtl_processed)
     return(forout_reactive$table_qtl_processed %>% head(., 20) %>% DT::datatable(., rownames = FALSE, 
-                                      caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: pQTL summary table. ", "</b>","<em>","Table containing the pQTLs after filtering" , "</em>"))),
+                                      caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: pQTL/eQTL summary table. ", "</b>","<em>","Table containing the pQTLs/eQTLs after filtering" , "</em>"))),
                                       options = list(scrollX = TRUE, pageLength = 5, dom = 'tip')))
   }, server = FALSE)
   
@@ -1708,9 +1709,30 @@ server <- function(input, output, session) {
     tallytable <- tallytable %>% left_join(., total)
     
     forout_reactive$table_qtl_tally <- tallytable %>% mutate_all(funs(tidyr::replace_na(., 0))) %>% arrange(-n_total)
-    return(forout_reactive$table_qtl_tally %>% DT::datatable(., rownames = FALSE, caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: pQTL gene tally table. ", "</b>","<em>","A tally of the pQTL genes. Ordered from most prevalent to least prevalent" , "</em>"))),
+    return(forout_reactive$table_qtl_tally %>% DT::datatable(., rownames = FALSE, caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: pQTL/eQTL gene tally table. ", "</b>","<em>","A tally of the pQTL genes. Ordered from most prevalent to least prevalent" , "</em>"))),
                                                              options = list(scrollX = TRUE, pageLength = 5, dom = 'tip')))
     
+  }, server = FALSE)
+  
+  
+  # output - intrainterable ----  
+  output$intraintertable <- DT::renderDT({
+    req(forout_reactive$table_qtl_processed)
+    
+    # Find all SNPs that are intragenic in one gene and intergenic to another
+    snplist <- intersect(forout_reactive$table_qtl_processed %>% filter(CP_Intragenic_QTL == TRUE) %>% select(ID) %>% unlist,
+                         forout_reactive$table_qtl_processed %>% filter(CP_Intragenic_QTL == FALSE) %>% select(ID) %>% unlist)
+    
+
+    interactiontable <- left_join(forout_reactive$table_qtl_processed %>% filter(ID %in% snplist & CP_Intragenic_QTL == TRUE) %>% select(ID, !! rlang::sym(forout_reactive$qtlcolnames[4])) %>% `colnames<-`(c("ID", "Intragenic_gene")),
+                                                   forout_reactive$table_qtl_processed %>% filter(ID %in% snplist & CP_Intragenic_QTL == FALSE) %>% select(ID, !! rlang::sym(forout_reactive$qtlcolnames[4])) %>% `colnames<-`(c("ID", "Intergenic_gene")), by = "ID") 
+    forout_reactive$table_intra_inter <- aggregate(Intergenic_gene ~ .,data= interactiontable %>% as.matrix(),FUN=paste0, collapse = ";")
+    forout_reactive$table_intra_inter_summarized <- aggregate(Intergenic_gene ~ .,data= interactiontable%>% select(Intragenic_gene, Intergenic_gene) %>% distinct() %>% as.matrix(),FUN=paste0, collapse = ";")
+    
+
+    return(forout_reactive$table_intra_inter %>% head(., 20) %>% DT::datatable(., rownames = FALSE, 
+                                                                                 caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Intragenic/intergenic interactions. ", "</b>","<em>","Table containing genes with intragenic SNPs that also affect intergenic genes. This table only shows the first 20 rows of the results, but the full table can be downloaded. The downloadable summarized table contains all unique intragenic/intergenic gene interactions, without the SNP column." , "</em>"))),
+                                                                                 options = list(scrollX = TRUE, pageLength = 5, dom = 'tip')))
   }, server = FALSE)
   
   
@@ -2800,6 +2822,8 @@ server <- function(input, output, session) {
   output$download_protannotable       <- cp_dl_table_csv(forout_reactive$protanno, "protein_annotated.csv")
   output$download_qtltallytable       <- cp_dl_table_csv(forout_reactive$table_qtl_tally, "pqtl_tally.csv")
   output$download_qtltable            <- cp_dl_table_csv(forout_reactive$table_qtl_processed, "pqtl_table.csv")
+  output$download_intraintertable     <- cp_dl_table_csv(forout_reactive$table_intra_inter, "pqtl_intragenic_intergenic_table.csv")
+  output$download_intrainter_summarized_table     <- cp_dl_table_csv(forout_reactive$table_intra_inter_summarized, "pqtl_intragenic_intergenic_summarized_table.csv")
   output$download_phenotallytable     <- cp_dl_table_csv(forout_reactive$table_pheno_tally, "phenotype_tally.csv")
   output$download_phenotable          <- cp_dl_table_csv(forout_reactive$table_pheno_processed, "phenotype_table.csv")
   output$download_corumcomplextable   <- cp_dl_table_csv(forout_reactive$table_complex_tally, "corum_complex_tally.csv")
