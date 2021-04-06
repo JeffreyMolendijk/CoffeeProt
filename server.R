@@ -759,7 +759,7 @@ server <- function(input, output, session) {
     if(input$qtl_anno_species == "No annotation"){
       forout_reactive$table_qtl_processed <- df 
       forout_reactive$qtl_annotated <- FALSE
-      sendSweetAlert(session = session, title = "Processing Success!", text = "Upload other data types or proceed to the analysis tabs", type = "success")
+      sendSweetAlert(session = session, title = "Processing Success!", text = paste0("QTLs remaining after filtering: ", nrow(df), "/", nrow(forout_reactive$qtldf), ". Upload other data types or proceed to the analysis tabs"), type = "success")
       
       
     } else if(input$qtl_anno_species == "Homo sapiens" & nrow(df) < 500000){
@@ -784,7 +784,7 @@ server <- function(input, output, session) {
         forout_reactive$table_qtl_processed <- df 
         forout_reactive$qtl_annotated <- FALSE
         
-        sendSweetAlert(session = session, title = "Processing completed without annotation.", text = "No human SNPs were detected in the data.", type = "success")
+        sendSweetAlert(session = session, title = "Processing completed without annotation.", text = paste0("QTLs remaining after filtering: ", nrow(df), "/", nrow(forout_reactive$qtldf), ". No human SNPs were detected in the data."), type = "success")
       } else {
         
         df$CP_Variant_Effect <- res$ve %>% sub('^c\\(.', "",.) %>% sub('\"', "",.)
@@ -793,7 +793,7 @@ server <- function(input, output, session) {
         forout_reactive$table_qtl_processed <- df
         forout_reactive$qtl_annotated <- TRUE
         
-        sendSweetAlert(session = session, title = "Processing Success!", text = "Upload other data types or proceed to the analysis tabs", type = "success")
+        sendSweetAlert(session = session, title = "Processing Success!", text = paste0("QTLs remaining after filtering: ", nrow(df), "/", nrow(forout_reactive$qtldf), ". Upload other data types or proceed to the analysis tabs"), type = "success")
       }
       
       
@@ -819,7 +819,7 @@ server <- function(input, output, session) {
         forout_reactive$table_qtl_processed <- df 
         forout_reactive$qtl_annotated <- FALSE
         
-        sendSweetAlert(session = session, title = "Processing completed without annotation.", text = "No mouse SNPs were detected in the data.", type = "success")
+        sendSweetAlert(session = session, title = "Processing completed without annotation.", text = paste0("QTLs remaining after filtering: ", nrow(df), "/", nrow(forout_reactive$qtldf), ". No mouse SNPs were detected in the data."), type = "success")
       } else {
         df$CP_Variant_Effect <- res$ve %>% sub('^c\\(.', "",.) %>% sub('\"', "",.)
         df <- left_join(df, ve_impact_mapping %>% select(SO.term, CP_Variant_Impact), by = c("CP_Variant_Effect" = "SO.term"))
@@ -827,13 +827,13 @@ server <- function(input, output, session) {
         forout_reactive$table_qtl_processed <- df
         forout_reactive$qtl_annotated <- TRUE
         
-        sendSweetAlert(session = session, title = "Processing Success!", text = "Upload other data types or proceed to the analysis tabs", type = "success")
+        sendSweetAlert(session = session, title = "Processing Success!", text = paste0("QTLs remaining after filtering: ", nrow(df), "/", nrow(forout_reactive$qtldf), ". Upload other data types or proceed to the analysis tabs."), type = "success")
       }      
       
     } else {
       forout_reactive$table_qtl_processed <- df
       forout_reactive$qtl_annotated <- FALSE
-      sendSweetAlert(session = session, title = "Processing completed without annotation!", text = "Data contained > 500,000 rows, please filter the data", type = "info")
+      sendSweetAlert(session = session, title = "Processing completed without annotation!", text = paste0("QTLs remaining after filtering: ", nrow(df), "/", nrow(forout_reactive$qtldf), ". Data contained > 500,000 rows, please filter the data"), type = "info")
       
     }
     
@@ -1127,7 +1127,7 @@ server <- function(input, output, session) {
  
       forout_reactive$table_pheno_processed <- df 
       forout_reactive$pheno_annotated <- FALSE
-      sendSweetAlert(session = session, title = "Processing Success!", text = "Upload other data types or proceed to the analysis tabs", type = "success")
+      sendSweetAlert(session = session, title = "Processing Success!", text = paste0("QTLs remaining after filtering: ", nrow(df), "/", nrow(forout_reactive$phenodf), ". Upload other data types or proceed to the analysis tabs"), type = "success")
    
       updateProgressBar(session = session, id = "pb4", value = 100)
     
@@ -1316,6 +1316,7 @@ server <- function(input, output, session) {
       
       box(title = "Plot parameters", status = "primary", width = 12, radioGroupButtons(inputId = "baittype", label = "Bait type", choices = c("Gene / Protein" = "qtl", Phenotype = "pheno"), selected = "qtl", justified = TRUE), 
           uiOutput("baitselect_ui1"), uiOutput("baitselect_ui2"),
+          selectInput("nodelabels", "Select node labels to display", c("All", "No SNP labels", "None"), selected = "All", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL),
           selectInput(inputId = "baitnetwork_dgi", label = "Add drug-gene interactions from DGIdb?", choices = c('None', 'All DGIdb interactions', db_dgidb_source$dgi_source), selected = "None", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL),
           actionButton(inputId = "bait_bttn", label = "Make plot!"))
       
@@ -1323,6 +1324,7 @@ server <- function(input, output, session) {
       
       box(title = "Plot parameters", status = "primary", width = 12, radioGroupButtons(inputId = "baittype", label = "Bait type", choices = c("Gene / Protein" = "qtl", Phenotype = "pheno"), selected = "qtl", justified = TRUE), 
           uiOutput("baitselect_ui1"), uiOutput("baitselect_ui2"),
+          selectInput("nodelabels", "Select node labels to display", c("All", "No SNP labels", "None"), selected = "All", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL),
           selectInput(inputId = "baitnetwork_dgi", label = "Add drug-gene interactions from DGIdb?", choices = c('None', 'All DGIdb interactions', db_dgidb_source$dgi_source), selected = "None", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL),
           actionButton(inputId = "bait_bttn", label = "Make plot!"), 
           downloadButton("download_baitnetwork", "Download network"),
@@ -1476,6 +1478,7 @@ server <- function(input, output, session) {
     if(is.null(forout_reactive$table_qtl_processed) == TRUE){
       tagList(
         shinyjs::hidden(radioGroupButtons(inputId = "network_qtlsummarize", label = "Summarize QTLs?", choices = c('Individual QTLs' = "individual", 'Per chromosome' = "chromosome"), selected = "individual", justified = TRUE)),
+        selectInput("nodelabelsnw", "Select node labels to display", c("All", "No SNP labels", "None"), selected = "All", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL),
         selectInput(inputId = "network_dgi", label = "Add drug-gene interactions from DGIdb?", choices = c('None', 'All DGIdb interactions', db_dgidb_source$dgi_source), selected = "None", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL),
         actionButton(inputId = "network_bttn", label = "Make plot!"),
         downloadButton("download_network", "Download network"),
@@ -1483,6 +1486,7 @@ server <- function(input, output, session) {
       } else if(forout_reactive$ld_processed == TRUE){
       tagList(
         radioGroupButtons(inputId = "network_qtlsummarize", label = "Summarize QTLs?", choices = c('Individual QTLs' = "individual", 'Per chromosome' = "chromosome", "Per LD" = "LD"), selected = "individual", justified = TRUE),
+        selectInput("nodelabelsnw", "Select node labels to display", c("All", "No SNP labels", "None"), selected = "All", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL),
         selectInput(inputId = "network_dgi", label = "Add drug-gene interactions from DGIdb?", choices = c('None', 'All DGIdb interactions', db_dgidb_source$dgi_source), selected = "None", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL),
         actionButton(inputId = "network_bttn", label = "Make plot!"),
         downloadButton("download_network", "Download network"),
@@ -1490,6 +1494,7 @@ server <- function(input, output, session) {
     } else {
       tagList(
         radioGroupButtons(inputId = "network_qtlsummarize", label = "Summarize QTLs?", choices = c('Individual QTLs' = "individual", 'Per chromosome' = "chromosome"), selected = "individual", justified = TRUE),
+        selectInput("nodelabelsnw", "Select node labels to display", c("All", "No SNP labels", "None"), selected = "All", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL),
         selectInput(inputId = "network_dgi", label = "Add drug-gene interactions from DGIdb?", choices = c('None', 'All DGIdb interactions', db_dgidb_source$dgi_source), selected = "None", multiple = FALSE, selectize = TRUE, width = NULL, size = NULL),
         actionButton(inputId = "network_bttn", label = "Make plot!"),
         downloadButton("download_network", "Download network"),
@@ -1666,10 +1671,12 @@ server <- function(input, output, session) {
   output$network_bait <- renderForceNetwork( {
     req(forout_reactive$bait_links, forout_reactive$bait_nodes)
     
-    forceNetwork(Links = forout_reactive$bait_links, Nodes = forout_reactive$bait_nodes, Source = 'source', Target = 'target', NodeID = 'var', Nodesize = 'n', Group = 'nodetype', linkColour = forout_reactive$bait_links$edgecol, charge = input$nodecharge, opacity = 0.8, fontSize = 12, zoom = TRUE, opacityNoHover = 0.4, legend = TRUE, clickAction = 'Shiny.onInputChange("nwbait_select_name", d.name), Shiny.onInputChange("nwbait_select_group", d.group)')
+        forceNetwork(Links = forout_reactive$bait_links, Nodes = forout_reactive$bait_nodes, Source = 'source', Target = 'target', NodeID = 'var', Nodesize = 'n', Group = 'nodetype', linkColour = forout_reactive$bait_links$edgecol, charge = input$nodecharge, opacity = 1, fontSize = 12, zoom = TRUE, opacityNoHover = 0.6, legend = TRUE)
     
   })
   
+  
+ 
   
   # Analysis - network_plot_interactive ----
   output$network_bait_legend <- renderPlot( {
@@ -1683,8 +1690,6 @@ server <- function(input, output, session) {
 
   })
   
-  
-    
 
   # output - fileinput - qtltable ----  
   output$qtltable <- DT::renderDT({
@@ -2175,15 +2180,15 @@ server <- function(input, output, session) {
     # if more than 2000, don't render, but allow download
     if(nrow(nw_vertices) > 2000){
       sendSweetAlert(session = session, title = "Too many network nodes to render the plot (>2000), but download available", text = "Please select a stricter correlation cut-off, or directly download the network", type = "info")
-      forout_reactive$interactive_plot_network_dl <-  forceNetwork(Links = links, Nodes = nodes, Source = 'source', Target = 'target', NodeID = 'var', Nodesize = 'n', Group = 'nodetype', charge = input$nodechargenw, linkColour = links$edgecol, opacity = 0.8, fontSize = 12, zoom = TRUE, opacityNoHover = 0.4, legend = TRUE)
+      forout_reactive$interactive_plot_network_dl <-  forceNetwork(Links = links, Nodes = nodes, Source = 'source', Target = 'target', NodeID = 'var', Nodesize = 'n', Group = 'nodetype', charge = input$nodechargenw, linkColour = links$edgecol, opacity = 1, fontSize = 12, zoom = TRUE, opacityNoHover = 0.6, legend = TRUE)
     
       forout_reactive$network_links <- links
       updateProgressBar(session = session, id = "pb7", value = 100)
       
       } else {
         
-      forout_reactive$interactive_plot_network_dl <-  forceNetwork(Links = links, Nodes = nodes, Source = 'source', Target = 'target', NodeID = 'var', Nodesize = 'n', Group = 'nodetype', charge = input$nodechargenw, linkColour = links$edgecol, opacity = 0.8, fontSize = 12, zoom = TRUE, opacityNoHover = 0.4, legend = TRUE)
-      forout_reactive$interactive_plot_network <-  forceNetwork(Links = links, Nodes = nodes, Source = 'source', Target = 'target', NodeID = 'var', Nodesize = 'n', Group = 'nodetype', charge = input$nodechargenw, linkColour = links$edgecol, opacity = 0.8, fontSize = 12, zoom = TRUE, opacityNoHover = 0.4, legend = TRUE)
+      forout_reactive$interactive_plot_network_dl <-  forceNetwork(Links = links, Nodes = nodes, Source = 'source', Target = 'target', NodeID = 'var', Nodesize = 'n', Group = 'nodetype', charge = input$nodechargenw, linkColour = links$edgecol, opacity = 1, fontSize = 12, zoom = TRUE, opacityNoHover = 0.6, legend = TRUE)
+      forout_reactive$interactive_plot_network <-  forceNetwork(Links = links, Nodes = nodes, Source = 'source', Target = 'target', NodeID = 'var', Nodesize = 'n', Group = 'nodetype', charge = input$nodechargenw, linkColour = links$edgecol, opacity = 1, fontSize = 12, zoom = TRUE, opacityNoHover = 0.6, legend = TRUE)
       
       forout_reactive$network_links <- links
       updateProgressBar(session = session, id = "pb7", value = 100)
@@ -2643,7 +2648,7 @@ server <- function(input, output, session) {
       
       gc()
       
-    saveNetwork(forceNetwork(Links = forout_reactive$bait_links, Nodes = forout_reactive$bait_nodes, Source = 'source', Target = 'target', NodeID = 'var', Nodesize = 'n', Group = 'nodetype', linkColour = forout_reactive$bait_links$edgecol, charge = input$nodecharge, opacity = 0.8, fontSize = 12, zoom = TRUE, opacityNoHover = 0.4, legend = TRUE), file, selfcontained = TRUE)
+    saveNetwork(forceNetwork(Links = forout_reactive$bait_links, Nodes = forout_reactive$bait_nodes, Source = 'source', Target = 'target', NodeID = 'var', Nodesize = 'n', Group = 'nodetype', linkColour = forout_reactive$bait_links$edgecol, charge = input$nodecharge, opacity = 1, fontSize = 12, zoom = TRUE, opacityNoHover = 0.6, legend = TRUE), file, selfcontained = TRUE)
     })
   
   # Download bait network handler ----
