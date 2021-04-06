@@ -1786,7 +1786,7 @@ server <- function(input, output, session) {
     
     return(forout_reactive$table_complex %>% head(20) %>% select(varID1, varID2, VarVar, everything()) %>% DT::datatable(., rownames = FALSE,
                                                                caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: justify;', HTML(paste("<b>","Table: Correlation results. ", "</b>","<em>","Protein-protein or transcript-transcript correlations are performed using user-specified parameters to discover co-regulated pairs For each correlated pair (p1 & p2) a correlation score (cor), p-value (pval) and q-value (qval) are displayed. The following columns indicate the CORUM complex identifiers, complex names or presence in the database (ComplexID - inCORUM). After that the BioPlex pW score is shown, a column indicating whether the protein pair was found in BioPlex (inBioPlex, top 10 percent), and the STRINGdb linkscore. Finally, the subcellular localizations of the first and second protein/transcript are shown (loc1, loc2), followed by the overlap (overlap.loc) and column indicating whether any localizations where the same (share.loc).","</em>"))),
-                                                               options = list(scrollX = TRUE, pageLength = 5, dom = 'tip')))
+                                                               options = list(scrollX = TRUE, pageLength = 5, dom = 'tip')) %>% DT::formatRound(columns=c('cor'), digits=2) %>% DT::formatSignif(columns = c('pval', 'qval'), digits = 2))
   }, server = FALSE)
   
 
