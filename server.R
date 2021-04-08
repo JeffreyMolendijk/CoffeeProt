@@ -861,8 +861,8 @@ server <- function(input, output, session) {
     
     # these cut-offs needs to be looped over
     results <- list()
-    corparam = c(rep(0, 9), rep(0.1, 9), rep(0.2, 9), rep(0.3, 9), rep(0.4, 9), rep(0.5, 9), rep(0.6, 9), rep(0.7, 9))
-    qvalparam = c(rep(c(1, 1e-6, 1e-12, 1e-18, 1e-24, 1e-30, 1e-36, 1e-42, 1e-48), 8))
+    corparam = c(rep(0, 9), rep(0.1, 9), rep(0.2, 9), rep(0.3, 9), rep(0.4, 9), rep(0.5, 9), rep(0.6, 9), rep(0.7, 9), rep(0.8, 9))
+    qvalparam = c(rep(c(1, 1e-6, 1e-12, 1e-18, 1e-24, 1e-30, 1e-36, 1e-42, 1e-48), 9))
     
     for(i in 1:length(corparam)){
       
@@ -876,27 +876,34 @@ server <- function(input, output, session) {
                            (df_filter %>% filter(correlated == FALSE & inBioplex == TRUE) %>% nrow() / df_filter %>% filter(correlated == FALSE & inBioplex == FALSE) %>% nrow()) * 100,
                            
                            (df_filter %>% filter(correlated == TRUE & share.loc == TRUE) %>% nrow() / df_filter %>% filter(correlated == TRUE & share.loc == FALSE) %>% nrow()) * 100,
-                           (df_filter %>% filter(correlated == FALSE & share.loc == TRUE) %>% nrow() / df_filter %>% filter(correlated == FALSE & share.loc == FALSE) %>% nrow()) * 100
+                           (df_filter %>% filter(correlated == FALSE & share.loc == TRUE) %>% nrow() / df_filter %>% filter(correlated == FALSE & share.loc == FALSE) %>% nrow()) * 100,
+                           
+                           df_filter %>% filter(correlated == TRUE) %>% nrow(),
+                           df_filter %>% filter(correlated == FALSE) %>% nrow()
       )
       
     }
     
-    df <- data.frame(matrix(unlist(results), nrow=length(results), byrow=T)) %>% `colnames<-`(c("cor", "qval", "CORUM_C", "CORUM_NC", "BioPlex_C", "BioPlex_NC", "shareloc_C", "shareloc_NC"))
+    df <- data.frame(matrix(unlist(results), nrow=length(results), byrow=T)) %>% `colnames<-`(c("cor", "qval", "CORUM_C", "CORUM_NC", "BioPlex_C", "BioPlex_NC", "shareloc_C", "shareloc_NC", "correlated_C", "correlated_NC"))
     
     # Generate the correlated (c) and not correlated (nc) plots for CORUM, BioPlex and shared locations
-    corum_c <- ggplot(df, aes(x = cor, y = -log10(qval), fill = CORUM_C)) + geom_tile() + geom_text(aes(label = round(CORUM_C, 1))) + mytheme + scale_x_continuous(expand = c(0, 0.01)) + scale_y_continuous(expand = c(0.01, 0.01)) + labs(x = "") + ggtitle(label = "% in CORUM")
-    corum_nc <-ggplot(df, aes(x = cor, y = -log10(qval), fill = CORUM_NC)) + geom_tile() + geom_text(aes(label = round(CORUM_NC, 1))) + theme(legend.position = "null") + mytheme + scale_x_continuous(expand = c(0, 0.01)) + scale_y_continuous(expand = c(0.01, 0.01))
+    corum_c <- ggplot(df, aes(x = cor, y = -log10(qval), fill = CORUM_C)) + geom_tile() + geom_text(aes(label = round(CORUM_C, 1)), size = 3) + mytheme + scale_x_continuous(expand = c(0, 0.01)) + scale_y_continuous(expand = c(0.01, 0.01)) + labs(x = "") + ggtitle(label = "% in CORUM")
+    corum_nc <-ggplot(df, aes(x = cor, y = -log10(qval), fill = CORUM_NC)) + geom_tile() + geom_text(aes(label = round(CORUM_NC, 1)), size = 3) + theme(legend.position = "null") + mytheme + scale_x_continuous(expand = c(0, 0.01)) + scale_y_continuous(expand = c(0.01, 0.01))
     
-    bioplex_c <-ggplot(df, aes(x = cor, y = -log10(qval), fill = BioPlex_C)) + geom_tile() + geom_text(aes(label = round(BioPlex_C, 1))) + theme(legend.position = "null") + mytheme + scale_x_continuous(expand = c(0, 0.01)) + scale_y_continuous(expand = c(0.01, 0.01)) + labs(x = "", y = "") + ggtitle(label = "% in BioPlex")
-    bioplex_nc <-ggplot(df, aes(x = cor, y = -log10(qval), fill = BioPlex_NC)) + geom_tile() + geom_text(aes(label = round(BioPlex_NC, 2))) + theme(legend.position = "null") + mytheme + scale_x_continuous(expand = c(0, 0.01)) + scale_y_continuous(expand = c(0.01, 0.01)) + labs(y = "")
+    bioplex_c <-ggplot(df, aes(x = cor, y = -log10(qval), fill = BioPlex_C)) + geom_tile() + geom_text(aes(label = round(BioPlex_C, 1)), size = 3) + theme(legend.position = "null") + mytheme + scale_x_continuous(expand = c(0, 0.01)) + scale_y_continuous(expand = c(0.01, 0.01)) + labs(x = "", y = "") + ggtitle(label = "% in BioPlex")
+    bioplex_nc <-ggplot(df, aes(x = cor, y = -log10(qval), fill = BioPlex_NC)) + geom_tile() + geom_text(aes(label = round(BioPlex_NC, 2)), size = 3) + theme(legend.position = "null") + mytheme + scale_x_continuous(expand = c(0, 0.01)) + scale_y_continuous(expand = c(0.01, 0.01)) + labs(y = "")
     
-    shareloc_c <-ggplot(df, aes(x = cor, y = -log10(qval), fill = shareloc_C)) + geom_tile() + geom_text(aes(label = round(shareloc_C, 1))) + theme(legend.position = "null") + mytheme + scale_x_continuous(expand = c(0, 0.01)) + scale_y_continuous(expand = c(0.01, 0.01)) + labs(x = "", y = "", tag = "Correlated \n") + ggtitle(label = "% shared localization")
-    shareloc_nc <-ggplot(df, aes(x = cor, y = -log10(qval), fill = shareloc_NC)) + geom_tile() + geom_text(aes(label = round(shareloc_NC, 1))) + theme(legend.position = "null") + mytheme + scale_x_continuous(expand = c(0, 0.01)) + scale_y_continuous(expand = c(0.01, 0.01)) + labs(y = "", tag = "Not correlated \n")
+    shareloc_c <-ggplot(df, aes(x = cor, y = -log10(qval), fill = shareloc_C)) + geom_tile() + geom_text(aes(label = round(shareloc_C, 1)), size = 3) + theme(legend.position = "null") + mytheme + scale_x_continuous(expand = c(0, 0.01)) + scale_y_continuous(expand = c(0.01, 0.01)) + labs(x = "", y = "", tag = "Correlated \n") + ggtitle(label = "% shared localization")
+    shareloc_nc <-ggplot(df, aes(x = cor, y = -log10(qval), fill = shareloc_NC)) + geom_tile() + geom_text(aes(label = round(shareloc_NC, 1)), size = 3) + theme(legend.position = "null") + mytheme + scale_x_continuous(expand = c(0, 0.01)) + scale_y_continuous(expand = c(0.01, 0.01)) + labs(y = "", tag = "Not correlated \n")
+    
+    correlated_c <-ggplot(df, aes(x = cor, y = -log10(qval), fill = log10(correlated_C))) + geom_tile() + geom_text(aes(label = formatC(correlated_C, format = "e", digits = 1)), size = 3) + theme(legend.position = "null") + mytheme + scale_x_continuous(expand = c(0, 0.01)) + scale_y_continuous(expand = c(0.01, 0.01)) + labs(x = "", y = "", tag = "Correlated \n") + ggtitle(label = "Number of proteins")
+    correlated_nc <-ggplot(df, aes(x = cor, y = -log10(qval), fill = log10(correlated_NC))) + geom_tile() + geom_text(aes(label = formatC(correlated_NC, format = "e", digits = 1)), size = 3) + theme(legend.position = "null") + mytheme + scale_x_continuous(expand = c(0, 0.01)) + scale_y_continuous(expand = c(0.01, 0.01)) + labs(y = "", tag = "Not correlated \n")
+    
     
     sendSweetAlert(session = session, title = "Plot completed!", text = "", type = "success")
     
     # Make a combined plot panel using patchwork
-    forout_reactive$plot_sensitivity <- (corum_c + bioplex_c + shareloc_c) / (corum_nc + bioplex_nc + shareloc_nc)
+    forout_reactive$plot_sensitivity <- corum_c + bioplex_c + shareloc_c + correlated_c + corum_nc + bioplex_nc + shareloc_nc + correlated_nc + plot_layout(nrow = 2)
     
   })
   

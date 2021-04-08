@@ -35,7 +35,7 @@
 
 <br>
 
-<p align="center"><img src="./www/Figure_1_V8.svg" alt="drawing" width="80%"/></p>
+<p align="center"><img src="./www/Graphical_abstract_v4.svg" alt="drawing" width="80%"/></p>
 
 <p align="justify"><b>Figure. CoffeeProt workflow. </b> The CoffeeProt workflow starts with users accessing the CoffeeProt web user interface at www.CoffeeProt.com to upload datafiles and specify analysis parameters (1). The user interface and server backend running R are connected using the Shiny R package (2). Feature annotations are performed based on local databases included in CoffeeProt as well as remotely hosted databases on the Nectar Research Cloud (3). User data is analyzed to perform summary statistics (I), correlation (II), interaction (III) and network (IV) analyses (4). The results are displayed in the web interface for result interpretation by the user (5). Finally, individual tables and plots are exported (6). </p>
 
