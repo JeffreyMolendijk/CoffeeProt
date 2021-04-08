@@ -250,15 +250,15 @@ server <- function(input, output, session) {
     
     if(is.null(forout_reactive$plot_sensitivity) == TRUE){
       box(title = "Correlation sensitivity analysis", status = "primary", solidHeader = FALSE, width = 12, 
-          HTML("A sensitivity analysis will indicate which p-value and correlation coefficient cut-offs affect the percentage of correlated pairs found in the reference databases. Clicking the 'Perform sensitivity analysis!' will perform the analysis on many combinations of correlation coefficients and q-values. <b>This analysis takes about 2-3 minutes</b>."), br(),
+          HTML("A sensitivity analysis will indicate which p-value and correlation coefficient cut-offs affect the percentage of correlated pairs found in the reference databases. Clicking the 'Perform sensitivity analysis!' will perform the analysis on many combinations of correlation coefficients and q-values. <b>This analysis takes about 2-3 minutes</b>. When exporting sensitivity plots on the <code>Plot & Table export</code> tab, please select the Extra-Large and Extra-Wide dimensions to retain the correct aspect ratio and readable numbers."), br(), br(),
           actionButton(inputId = "sensitivity_analysis", label = "Perform sensitivity analysis!"))
     } else {
       box(title = "Correlation sensitivity analysis", status = "primary", solidHeader = FALSE, width = 12, 
-          HTML("A sensitivity analysis will indicate which p-value and correlation coefficient cut-offs affect the percentage of correlated pairs found in the reference databases. Clicking the 'Perform sensitivity analysis!' will perform the analysis on many combinations of correlation coefficients and q-values. <b>This analysis takes about 2-3 minutes</b>."), br(),
+          HTML("A sensitivity analysis will indicate which p-value and correlation coefficient cut-offs affect the percentage of correlated pairs found in the reference databases. Clicking the 'Perform sensitivity analysis!' will perform the analysis on many combinations of correlation coefficients and q-values. <b>This analysis takes about 2-3 minutes</b>. When exporting sensitivity plots on the <code>Plot & Table export</code> tab, please select the Extra-Large and Extra-Wide dimensions to retain the correct aspect ratio and readable numbers."), br(), br(),
           plotOutput("sensitivityplot"),
           HTML(paste("<b>", "Figure: Correlation sensitivity analysis. ", "</b>",
                      "<em>", "Combinations of correlation coefficients and q-values input parameters are tested to determine the effect on the correlated pair enrichment in the database analyses. 
-        The colours and numbers indicate the percentage of correlated pairs found in that database. Plots are made for 3 databases, for the 'correlated' and 'non-correlated' pairs.", "</em>")), br(),
+        The colours and numbers indicate the percentage of correlated pairs found in that database. Plots are made for 3 databases, for the 'correlated' and 'non-correlated' pairs.", "</em>")), br(), br(),
           actionButton(inputId = "sensitivity_analysis", label = "Perform sensitivity analysis!"))
     }
   })
@@ -861,8 +861,8 @@ server <- function(input, output, session) {
     
     # these cut-offs needs to be looped over
     results <- list()
-    corparam = c(rep(0, 9), rep(0.1, 9), rep(0.2, 9), rep(0.3, 9), rep(0.4, 9), rep(0.5, 9), rep(0.6, 9), rep(0.7, 9), rep(0.8, 9))
-    qvalparam = c(rep(c(1, 1e-6, 1e-12, 1e-18, 1e-24, 1e-30, 1e-36, 1e-42, 1e-48), 9))
+    corparam = c(rep(0, 9), rep(0.1, 9), rep(0.2, 9), rep(0.3, 9), rep(0.4, 9), rep(0.5, 9), rep(0.6, 9), rep(0.7, 9), rep(0.8, 9), rep(0.9, 9))
+    qvalparam = c(rep(c(1, 1e-6, 1e-12, 1e-18, 1e-24, 1e-30, 1e-36, 1e-42, 1e-48), 10))
     
     for(i in 1:length(corparam)){
       
