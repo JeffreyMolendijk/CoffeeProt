@@ -168,7 +168,7 @@ Email: support@coffeeprot.com
 <br>
 
 ## <b>Citation</b>
-<p align="justify"> <a href="https://doi.org/10.1101/2020.10.02.323246" target="_blank">Jeffrey Molendijk, Marcus M Seldin, Benjamin L Parker. CoffeeProt: An online tool for correlation and functional enrichment of proteome-wide systems genetics. bioRxiv 2020.10.02.323246; doi: https://doi.org/10.1101/2020.10.02.323246 </a></p>
+<p align="justify"> <a href="https://doi.org/10.1093/nar/gkab352" target="_blank">Jeffrey Molendijk, Marcus M Seldin, Benjamin L Parker. CoffeeProt: an online tool for correlation and functional enrichment of systems genetics data. Nucleic Acids Research; doi: https://doi.org/10.1101/2020.10.02.323246 </a></p>
 
 <br>
 
